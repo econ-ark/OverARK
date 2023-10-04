@@ -1,0 +1,43 @@
+symbols:
+    states: [a]
+    exogenous: [r, w, e]
+    parameters: [alpha, L, K, delta, beta, B, a_min, a_max]
+    controls: [i]
+
+definitions:
+    c: (1+r)*a+w*exp(e) - i
+
+equations:
+
+    arbitrage:
+        - 1-beta*(1+r(+1))*c/c(+1) | -B <= i <= (1+r)*a+w*exp(e)
+
+    transition:
+        - a = i(-1)
+
+calibration:
+    B: 1.5
+    alpha: 0.35
+    L: 1.0
+    K: 40.0
+    delta: 0.025
+    beta: 0.95
+    r: alpha*(L/K)**(1-alpha) - delta
+    w: (1-alpha)*(K/L)**(alpha)
+    a_min: -B
+    a_max: 50.0
+
+domain:
+    a: [a_min, a_max]
+
+exogenous:
+    r,w: !ConstantProcess
+        μ: [r, w]
+    e: !VAR1
+        ρ: 0.95
+        Σ: [[0.06**2]]
+
+options:
+    grid:
+        !Cartesian
+        orders: [30]
