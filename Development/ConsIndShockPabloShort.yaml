@@ -1,0 +1,77 @@
+initializer_block:
+    dynamics:
+        - start
+        - kLvl = 0.0
+        - pLvlPrev = 1.0
+
+
+cons_ind_shock_block:
+    explain: consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: [kLvl, pLvlPrev]
+        controls: cLvl            
+        parameters: [CRRA, Rfree, PermGroFac, PermShkStd, TranShkStd, UnempPrb, UnempBenefit, LivPrb, BoroCnstArt]
+        distributions: [PermShkDstn, TranShkDstn, MortShkDstn]
+
+    definitions:
+        aLvl: mLvl - cLvl
+        aNrm: aLvl / pLvl
+
+    dynamics:
+        - bLvl = Rfree * kLvl
+        - PermShk ~ PermShkDstn
+        - TranShk ~ TranShkDstn
+        - pLvl = PermGroFac * PermShk * pLvlPrev
+        - yLvl = TranShk * pLvl
+        - mLvl = bLvl + yLvl
+        - cLvl @ (mLvl,pLvl) | aNrm >= BoroCnstArt
+        - dies ~ MortShkDstn
+
+    felicity:
+        cLvl^(1-CRRA) / (1-CRRA)
+
+    calibration:
+        CRRA: 2.0
+        BoroCnstArt: 0.
+        Rfree: 1.03
+        PermGroFac: 1.01
+        PermShkStd: 0.1
+        TranShkStd: 0.1
+        UnempPrb: 0.05
+        IncUnemp: 0.3
+        LivPrb: 0.98
+        TranShkScaleFac: log(UnempBenefit * UnempPrb / (1-UnempPrb))
+        PermShkDstn: !LogNormal
+            mean: -PermShkStd^2 / 2
+            stdev: PermShkStd
+            pbounds: [0.001, 0.999]
+        TranShkDstn! !Mixed
+            probs: [UnempPrb, 1. - UnempPrb]
+            distributions:
+                - !ConstantDstn: UnempBenefit
+                - !LogNormal:
+                    mean: TranShkScaleFac - TranShkStd^2 / 2
+                    stdev: TranShkStd^2 
+                    xbounds: [UnempBenefit, 1.0/UnempBenefit]
+        MortShkDstn: !Bernoulli:
+            prob: LivPrb
+
+
+time_loop:
+    tick: True
+    twist:
+        pLvl: pLvlPrev
+        aLvl: kLvl
+
+
+consumption_saving_model:
+    content:
+        - link(initializer_block, cons_ind_shock_block)
+        - link(cons_ind_shock_block, time_loop, dies ? [cons_ind_shock_block], stop])
+
+
+ind_shock_consumer:
+    model: consumption_saving_model
+    discount: 0.95
+    

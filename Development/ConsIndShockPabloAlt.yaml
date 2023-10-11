@@ -1,0 +1,104 @@
+initializer_block:
+    dynamics:
+        - start
+        - kLvl = 0.0
+        - pLvlPrev = 1.0
+
+
+cons_ind_shock_pre_block:
+    explain: pre-decision consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: [kLvl, pLvlPrev]
+        parameters: [Rfree, PermGroFac, PermShkStd, TranShkStd, UnempPrb, UnempBenefit]
+        distributions: [PermShkDstn, TranShkDstn]
+
+    dynamics:
+        - bLvl = Rfree * kLvl
+        - PermShk ~ PermShkDstn
+        - TranShk ~ TranShkDstn
+        - pLvl = PermGroFac * PermShk * pLvlPrev
+        - yLvl = TranShk * pLvl
+        - mLvl = bLvl + yLvl
+
+    calibration:
+        Rfree: 1.03
+        PermGroFac: 1.01
+        PermShkStd: 0.1
+        TranShkStd: 0.1
+        UnempPrb: 0.05
+        IncUnemp: 0.3
+        TranShkScaleFac: log(UnempBenefit * UnempPrb / (1-UnempPrb))
+        PermShkDstn: !LogNormal
+            mean: -PermShkStd^2 / 2
+            stdev: PermShkStd
+            pbounds: [0.001, 0.999]
+        TranShkDstn! !Mixed
+            probs: [UnempPrb, 1. - UnempPrb]
+            distributions:
+                - !ConstantDstn: UnempBenefit
+                - !LogNormal:
+                    mean: TranShkScaleFac - TranShkStd^2 / 2
+                    stdev: TranShkStd^2 
+                    xbounds: [UnempBenefit, 1.0/UnempBenefit]
+
+
+cons_ind_shock_choice_block:
+    explain: decision-time consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: [mLvl, pLvl]
+        controls: cLvl            
+        parameters: [CRRA, BoroCnstArt]
+
+    definitions:
+        aLvl = mLvl - cLvl
+        aNrm = aLvl / pLvl
+
+    dynamics:
+        - cLvl @ (mLvl,pLvl) | aNrm >= BoroCnstArt
+
+    felicity:
+        cLvl^(1-CRRA) / (1-CRRA)
+
+    calibration:
+        CRRA: 2.0
+        BoroCnstArt: 0.
+
+
+cons_ind_shock_post_block:
+    explain: post-decision consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: [aLvl, pLvl]
+        parameters: LivPrb
+        distributions: MortShkDstn
+
+    dynamics:
+        - dies ~ MortShkDstn
+
+    calibration:
+        LivPrb: 0.98
+        MortShkDstn: !Bernoulli:
+            prob: LivPrb
+
+
+time_loop:
+    tick: True
+    twist:
+        pLvl: pLvlPrev
+        aLvl: kLvl
+
+
+consumption_saving_model:
+    content:
+        - link(initializer_block, cons_ind_shock_pre_block)
+        - link(cons_ind_shock_pre_block, cons_ind_shock_choice_block)
+        - link(cons_ind_shock_choice_block, cons_ind_shock_post_block)
+        - link(cons_ind_shock_post_block, time_loop, dies ? [cons_ind_shock_pre_block], stop])
+
+
+ind_shock_consumer:
+    model: consumption_saving_model
+    discount: 0.95
+    

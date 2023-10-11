@@ -1,0 +1,128 @@
+initializer_block:
+    explain: consumer initialization for consumption-saving model with permanent and transitory shocks
+    
+    dynamics:
+        - start
+        - kLvl = 0.0
+        - pLvlPrev = 1.0
+
+
+cons_ind_shock_block:
+    explain: consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+
+        states: 
+            kLvl:
+                explain: level of capital holdings at the very beginning of the period
+                domain: R
+            pLvlPrev:
+                explain: permanent income level entering the period, before shocks and growth
+                domain: R++
+        
+        controls:
+            cLvl:
+                explain: consumption level chosen this period
+                domain: R+
+
+        parameters:
+            CRRA:
+                explain: coefficient of relative risk aversion
+                domain: R++
+	    Rfree:
+                explain: risk-free interest factor on capital
+                domain: R+
+	    PermGroFac:
+                explain: expected permanent income growth factor
+                domain: R++
+	    PermShkStd:
+                explain: standard deviation of log permanent income shocks
+                domain: R+
+	    TranShkStd:
+                explain: standard deviation of log transitory income shocks
+                domain: R+
+	    UnempPrb:
+                explain: probability of unemployment
+                domain: R+
+            UnempBenefit:
+                explain: special transitory shock level when unemployed
+                domain: R+
+            LivPrb:
+                explain: probability of surviving to the next period, after making consumption choice
+                domain: U
+            BoroCnstArt:
+                explain: artificial borrowing constraint, as a multplier on permanent income
+                domain: R-
+
+        distributions:
+            PermShkDstn:
+                explain: distribution of permanent income shocks
+                domain: R+
+            TranShkDstn:
+                explain: distribution of tran
+            MortShkDstn:
+                explain: mortality shock distribution
+                domain: B
+
+    definitions:
+        aLvl: mLvl - cLvl
+        aNrm: aLvl / pLvl
+
+    dynamics:
+        - bLvl = Rfree * kLvl
+        - (PermShk, TranShk) ~ IncShkDstn
+        - pLvl = PermGroFac * PermShk * pLvlPrev
+        - yLvl = TranShk * pLvl
+        - mLvl = bLvl + yLvl
+        - cLvl @ (mLvl,pLvl) | aNrm >= BoroCnstArt
+        - dies ~ MortShkDstn
+
+    felicity:
+        cLvl^(1-CRRA) / (1-CRRA)
+
+    calibration:
+        CRRA: 2.0
+        BoroCnstArt: 0.
+        Rfree: 1.03
+        PermGroFac: 1.01
+        PermShkStd: 0.1
+        TranShkStd: 0.1
+        UnempPrb: 0.05
+        IncUnemp: 0.3
+        LivPrb: 0.98
+        TranShkScaleFac: log(UnempBenefit * UnempPrb / (1-UnempPrb))
+        PermShkDstn: !LogNormal
+            mean: -PermShkStd^2 / 2
+            stdev: PermShkStd
+            pbounds: [0.001, 0.999]
+        TranShkDstn: !Mixed
+            probs: [UnempPrb, 1. - UnempPrb]
+            distributions:
+                - !ConstantDstn: UnempBenefit
+                - !LogNormal:
+                    mean: TranShkScaleFac - TranShkStd^2 / 2
+                    stdev: TranShkStd^2 
+                    xbounds: [UnempBenefit, 1.0/UnempBenefit]
+        MortShkDstn: !Bernoulli:
+            prob: LivPrb
+
+
+time_loop:
+    tick: True
+    twist:
+        pLvl: pLvlPrev
+        aLvl: kLvl
+
+
+consumption_saving_model:
+    explain: Carroll-style buffer stock saving model with permanent and transitory shocks, plus mortality
+    content:
+        - link(initializer_block, cons_ind_shock_block)
+        - link(cons_ind_shock_block, time_loop, dies ? [cons_ind_shock_block, stop])
+
+
+ind_shock_consumer:
+    explain: consumer in a Carroll-style buffer stock saving model  with permanent and transitory shocks, plus mortality
+    model: consumption_saving_model
+    discount: 0.95
+    

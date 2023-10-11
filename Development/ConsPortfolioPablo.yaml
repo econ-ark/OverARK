@@ -1,0 +1,125 @@
+initializer_block:
+    dynamics:
+        - start
+        - kLvl = 0.0
+        - pLvlPrev = 1.0
+        - RiskyShare = 0.0
+
+
+cons_portfolio_pre_block:
+    explain: pre-decision consumption-saving block with permanent and transitory income shocks and portfolio risk
+
+    symbols:
+        states: [kLvl, pLvlPrev, RiskyShare]
+        parameters: [Rfree, RiskyMean, RiskyStd, PermGroFac, PermShkStd, TranShkStd, UnempPrb, UnempBenefit]
+        distributions: [PermShkDstn, TranShkDstn, RiskyDstn]
+
+    dynamics:
+        - Risky ~ RiskyDstn
+        - Rport = (1-RiskyShare)*Rfree + RiskyShare*Risky
+        - bLvl = Rport * kLvl
+        - PermShk ~ PermShkDstn
+        - TranShk ~ TranShkDstn
+        - pLvl = PermGroFac * PermShk * pLvlPrev
+        - yLvl = TranShk * pLvl
+        - mLvl = bLvl + yLvl
+
+    calibration:
+        Rfree: 1.0
+        PermGroFac: 1.01
+        PermShkStd: 0.1
+        TranShkStd: 0.1
+        UnempPrb: 0.05
+        IncUnemp: 0.3
+        RiskyMean: 1.08
+        RiskyStd: 0.07
+        TranShkScaleFac: log(UnempBenefit * UnempPrb / (1-UnempPrb))
+        PermShkDstn: !LogNormal
+            mean: -PermShkStd^2 / 2
+            stdev: PermShkStd
+            pbounds: [0.001, 0.999]
+        TranShkDstn: !Mixed
+            probs: [UnempPrb, 1. - UnempPrb]
+            distributions:
+                - !ConstantDstn: UnempBenefit
+                - !LogNormal:
+                    mean: TranShkScaleFac - TranShkStd^2 / 2
+                    stdev: TranShkStd^2 
+                    xbounds: [UnempBenefit, 1.0/UnempBenefit]
+        RiskyDstn: !LogNormal:
+            mean: log(RiskyMean) - RiskyStd^2 / 2
+            stdev: RiskyStd
+            pbounds: [0.001, 0.999]
+            
+
+consumption_choice_block:
+    explain: consumption-decision-time block
+
+    symbols:
+        states: [mLvl, pLvl]
+        controls: cLvl            
+        parameters: [CRRA, BoroCnstArt]
+
+    definitions:
+        aLvl = mLvl - cLvl
+        aNrm = aLvl / pLvl
+
+    dynamics:
+        - cLvl @ (mLvl,pLvl) | aNrm >= BoroCnstArt
+
+    felicity:
+        cLvl^(1-CRRA) / (1-CRRA)
+
+    calibration:
+        CRRA: 2.0
+        BoroCnstArt: 0.
+
+
+portfolio_choice_block:
+    explain: portfolio share-decision-time block
+
+    symbols:
+        states: [aLvl, pLvl]
+        controls: RiskyShare
+
+    dynamics:
+        - RiskyShare @ (mLvl,pLvl) | [RiskyShare >= 0.0, RiskyShare <= 1.0]
+
+
+cons_portfolio_post_block:
+    explain: post-decision consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: [aLvl, pLvl, RiskyShare]
+        parameters: LivPrb
+        distributions: MortShkDstn
+
+    dynamics:
+        - dies ~ MortShkDstn
+
+    calibration:
+        LivPrb: 0.98
+        MortShkDstn: !Bernoulli:
+            prob: LivPrb
+
+
+time_loop:
+    tick: True
+    twist:
+        pLvl: pLvlPrev
+        aLvl: kLvl
+
+
+cons_portfolio_model:
+    content:
+        - link(initializer_block, cons_portfolio_pre_block)
+        - link(cons_portfolio_pre_block, consumption_choice_block)
+        - link(consumption_choice_block, portfolio_choice_block)
+        - link(portfolio_choice_block, cons_portfolio_post_block)
+        - link(cons_portfolio_post_block, time_loop, dies ? [cons_portfolio_pre_block, stop])
+
+
+portfolio_consumer:
+    model: cons_portfolio_model
+    discount: 0.95
+    
