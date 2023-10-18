@@ -1,0 +1,179 @@
+initializer_block:
+    dynamics:
+        - start
+        - aNrmPrev = 0.0
+        - pLvlPrev = 1.0
+
+
+cons_ind_shock_pre_block:
+    explain: pre-decision consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: 
+            aNrmPrev
+                explain: last period's end-of-period assets, normalized by last period's permanent income
+                domain: R
+                approximate:
+                    spacing: log
+                    bounds: [aNrmPrevMin, aNrmPrevMin + 50]
+                    nodes: 96
+            pLvlPrev:
+                explain: permanent income level entering the period, before shocks and growth
+                domain: R++
+        parameters: [Rfree, PermGroFac, PermShkStd, TranShkStd, UnempPrb, UnempBenefit]
+        distributions: [PermShkDstn, TranShkDstn]
+        functions:
+            vPfunc_pre:
+                domain: R
+            vFunc_pre:
+                domain: R
+                derivatives: vPfunc_pre
+        next: vFunc_mid
+
+    definitions:
+        G: PermGroFac * PermShk
+        pLvl: G * pLvlPrev
+        yLvl: TranShk * pLvl
+        bLvl: bNrm * pLvl
+        mLvl: mNrm * pLvl
+        v_mid: G^(1-CRRA) * vFunc_mid(mNrm)
+        vP_mid: Rfree * G^(-CRRA) * vFunc_mid.derivative(mNrm)
+
+    dynamics:
+        - PermShk ~ PermShkDstn
+        - TranShk ~ TranShkDstn
+        - kNrm = aNrmPrev / G
+        - bNrm = Rfree * kNrm
+        - mNrm = bNrm + TranShk
+
+    functions:
+        - vFunc_pre @ (aNrmPrev) = E[ v_mid ]
+        - vPfunc_pre @ (aNrmPrev) =  E[ vP_mid ]
+
+    solution:
+        guess:
+            vFunc_pre: !ConstantFunction: 0
+            vPfunc_pre: !ConstantFunction: 0
+
+    calibration:
+        mNrmMin: vFunc_mid.domain.min
+        aNrmPrevMin: (mNrmMin - TranShkDstn.inf) * (PermGroFac * PermShkDstn.inf) / Rfree
+        CRRA: 2.0
+        Rfree: 1.03
+        PermGroFac: 1.01
+        PermShkStd: 0.1
+        TranShkStd: 0.1
+        UnempPrb: 0.05
+        IncUnemp: 0.3
+        TranShkScaleFac: log(UnempBenefit * UnempPrb / (1-UnempPrb))
+        PermShkDstn: !LogNormal
+            mean: -PermShkStd^2 / 2
+            stdev: PermShkStd
+            pbounds: [0.001, 0.999]
+            approximation:
+                type: equiprobable
+                nodes: 7
+        TranShkDstn: !Mixed
+            probs: [UnempPrb, 1. - UnempPrb]
+            distributions:
+                - !ConstantDstn: UnempBenefit
+                - !LogNormal:
+                    mean: TranShkScaleFac - TranShkStd^2 / 2
+                    stdev: TranShkStd^2 
+                    xbounds: [UnempBenefit, 1.0/UnempBenefit]
+                    approximation:
+                        type: equiprobable
+                        nodes: 7
+
+
+cons_ind_shock_choice_block:
+    explain: decision-time consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: [mNrm, pLvl]
+        controls: cNrm            
+        parameters: [CRRA, BoroCnstArt]
+        functions:
+            vPfunc_mid:
+                domain: R
+            vFunc_mid:
+                domain: R
+                derivatives: vPfunc_mid
+        next: vFunc_post
+
+    definitions:
+        aNrm: mNrm - cNrm
+        aLvl: aNrm * pLvl
+        cLvl: cNrm * pLvl
+        u: cNrm^(1-CRRA) / (1-CRRA)
+        uP: cNrm^(-CRRA)
+        v_post: vFunc_post(aNrm)
+        v: u + v_post
+
+    functions:
+        - vFunc_mid @ (mNrm) = v
+        - vPfunc_mid @ (mNrm) = uP
+
+    dynamics:
+        - cNrm @ (mNrm) := max v | aNrm >= BoroCnstArt
+
+    solution:
+        method: EGM
+        discretize:
+            aNrm:
+                spacing: log
+                bounds: [aNrmMin, aNrm + 50]
+                nodes: 96
+        
+    calibration:
+        CRRA: 2.0
+        BoroCnstArt: 0.
+        aNrmMin: max(vFunc_next.domain.min, BoroCnstArt)
+
+
+cons_ind_shock_post_block:
+    explain: post-decision consumption-saving block with permanent and transitory income shocks
+
+    symbols:
+        states: [aNrm, pLvl]
+        parameters: LivPrb
+        distributions: MortShkDstn
+        functions:
+            vPfunc_post:
+                domain: R
+            vFunc_post:
+                domain: R
+                derivatives: vPfunc_post
+        next: vFunc_next
+
+    dynamics:
+        - dies ~ MortShkDstn
+
+    functions:
+        - vFunc_post @ (aNrm) = (LivPrb*DiscFac) * vFunc_next(aNrm)
+        - vPfunc_post @ (aNrm) = (LivPrb*DiscFac) * vFunc_next.derivative(aNrm)
+
+    calibration:
+        LivPrb: 0.98
+        MortShkDstn: !Bernoulli:
+            prob: LivPrb
+
+
+time_loop:
+    tick: True
+    twist:
+        pLvl: pLvlPrev
+        aNrm: aNrmPrev
+        vFunc_next: vFunc_pre
+
+
+consumption_saving_model:
+    content:
+        - link(initializer_block, cons_ind_shock_pre_block)
+        - link(cons_ind_shock_pre_block, cons_ind_shock_choice_block)
+        - link(cons_ind_shock_choice_block, cons_ind_shock_post_block)
+        - link(cons_ind_shock_post_block, time_loop, dies ? [cons_ind_shock_pre_block, stop])
+
+
+ind_shock_consumer:
+    model: consumption_saving_model

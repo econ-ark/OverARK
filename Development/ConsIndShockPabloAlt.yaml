@@ -33,7 +33,7 @@ cons_ind_shock_pre_block:
             mean: -PermShkStd^2 / 2
             stdev: PermShkStd
             pbounds: [0.001, 0.999]
-        TranShkDstn! !Mixed
+        TranShkDstn: !Mixed
             probs: [UnempPrb, 1. - UnempPrb]
             distributions:
                 - !ConstantDstn: UnempBenefit
@@ -95,7 +95,7 @@ consumption_saving_model:
         - link(initializer_block, cons_ind_shock_pre_block)
         - link(cons_ind_shock_pre_block, cons_ind_shock_choice_block)
         - link(cons_ind_shock_choice_block, cons_ind_shock_post_block)
-        - link(cons_ind_shock_post_block, time_loop, dies ? [cons_ind_shock_pre_block], stop])
+        - link(cons_ind_shock_post_block, time_loop, dies ? [cons_ind_shock_pre_block, stop])
 
 
 ind_shock_consumer:

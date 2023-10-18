@@ -68,7 +68,7 @@ time_loop:
 consumption_saving_model:
     content:
         - link(initializer_block, cons_ind_shock_block)
-        - link(cons_ind_shock_block, time_loop, dies ? [cons_ind_shock_block], stop])
+        - link(cons_ind_shock_block, time_loop, dies ? [cons_ind_shock_block, stop])
 
 
 ind_shock_consumer:
