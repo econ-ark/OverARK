@@ -35,7 +35,7 @@ parameters:
 equations: # section containing the list of equations
   transitions:
     m_: R_port * a / (G * perm) + tran
-    v(m): u(c) + beta * E[(G * perm_)^(1-rho) * v(m_)]
+    v(m): u(c) + beta * E[(G * perm_)^(1-rho) * w(m_)]
 
 definitions: # section contains variables that can be substituted directly into equations
   u(c): c^(1-rho) / (1-rho)
