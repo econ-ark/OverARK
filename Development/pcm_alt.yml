@@ -1,0 +1,45 @@
+name: ConsIndShock
+
+states:
+  - name: m
+    long_name: market resources
+    domain: [0, .inf]
+
+controls:
+  - name: c
+    long_name: consumption
+    domain: [0, .inf]
+  - name: stigma
+    long_name: risky portfolio share
+    domain: [0, 1]
+
+distributions:
+  perm: !MeanOneLogNormal
+    std: std_perm
+  tran: !MeanOneLogNormal
+    std: std_tran
+  risky: !LogNormal
+    mean: mean_risky
+    std: std_risky
+
+parameters:
+  beta: 0.96
+  rho: 2
+  R: 1.04
+  G: 1.02
+  std_perm: 0.1
+  std_tran: 0.1
+  mean_risky: 1.08
+  std_risky: 0.2
+
+equations: # section containing the list of equations
+  transitions:
+    m_: R_port * a / (G * perm) + tran
+    v(m): u(c) + beta * E[(G * perm_)^(1-rho) * v(m_)]
+
+definitions: # section contains variables that can be substituted directly into equations
+  u(c): c^(1-rho) / (1-rho)
+  R_port: R + (risky - R) * stigma
+  a: m - c
+
+options: # section containing additional information
