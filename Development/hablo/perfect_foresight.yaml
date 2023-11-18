@@ -61,11 +61,11 @@ model: &perfect_foresight
         u : 0
 
   links:
-    - !Link:
+    - !Link
       head: *cons
       tail: *mort # alias here references previously defined block. Parser can detect these and create references in memory.
 
-    - !Link:
+    - !Link
       head: *mort
       tail: *cons # alias here references previously defined block. Parser can detect these and create references in memory.
       twist: # explicit renaming operations. By default, the variables of head are available by name to the variables of tail.
@@ -82,11 +82,11 @@ model: &perfect_foresight
   strategies: # or 'solution' or 'problem'. But really this is about providing information needed
               # to settle any decision rules.
               # Could provide several definitions here, which can then be referred to in the simulation configuration.
-    - demo-hard: !HardRule:
+    - demo-hard: !HardRule
       block: &cons
       decision_rule:
         c : m / 2 # a trivial decision rule, not recommended
-    - bellman: !Bellman: # this should contain all the infomation needed for a recursive, Bellman-style solver.
+    - bellman: !Bellman # this should contain all the infomation needed for a recursive, Bellman-style solver.
       block: &cons
       reward: u # this is referencing a variable that was defined in dynamics. But it could also be a function of variables.
       discount: DiscFac # Where did DiscFac come from? Note it was referenced as a parameter in the block. It could be a function.
