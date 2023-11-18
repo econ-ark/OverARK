@@ -1,0 +1,72 @@
+name: ConsIndShock
+
+states:
+  - &m
+    name: m
+    long_name: market resources
+    domain: [0, .inf]
+  - &a
+    name: a
+    long_name: assets
+    domain: [0, .inf]
+
+controls:
+  - &c
+    name: c
+    long_name: consumption
+    domain: [0, .inf]
+  - &stigma
+    name: stigma
+    long_name: risky portfolio share
+    domain: [0, 1]
+
+blocks:
+  - name: Consumption
+    states: [*m]
+    controls: [*c]
+    parameters: [beta, rho]
+    equations:
+      transitions:
+        - a: m - c
+        - v_0(m): u(c) + beta * v_1(a)
+    definitions:
+      - u(c): c^(1-rho) / (1-rho)
+
+  - name: Portfolio Choice
+    states: [*a]
+    controls: [*stigma]
+    equations:
+      transitions:
+        - v_1(a): v_2(a, stigma)
+
+  - name: Post-Decision
+    states: [*a, *stigma]
+    distributions: [perm, tran, risky]
+    parameters: [R, G, perm, std_perm, std_tran, mean_risky, std_risky]
+    equations:
+      transitions:
+        - m_: R_port * a / (G * perm) + tran
+        - v_2(a, stigma): E[(G * perm_)^(1-rho) * w(m_)]
+    definitions:
+      - R_port: R + (risky - R) * stigma
+
+calibration: # section providing numeric values for the symbols
+  beta: 0.96
+  rho: 2
+  R: 1.04
+  G: 1.02
+  std_perm: 0.1
+  std_tran: 0.1
+  mean_risky: 1.08
+  std_risky: 0.2
+
+distributions: # exogenous section defining the kind of shocks which drive the model
+  perm: !MeanOneLogNormal
+    std: std_perm
+  tran: !MeanOneLogNormal
+    std: std_tran
+  risky: !LogNormal
+    mean: mean_risky
+    std: std_risky
+
+options: # section containing additional information
