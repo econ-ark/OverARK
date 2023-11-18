@@ -1,0 +1,137 @@
+
+model: &perfect_foresight
+  # Using a "network" architecture, where 'blocks' are nodes, and 'edges' are directed links between blocks.
+  agents:
+    consumer:
+      count: 100 # a model with 100 consumers
+      variables:
+        - m : R++ # could use this space to document out all the variables of an agent, but this is also implicit in the block definitions.
+                # not enforcing that this list be here makes the configuration more extensible, i.e
+        - etc. 
+
+  blocks:
+    consumption: &cons # block definition begins with name of the block. Alias 
+      agent: consumer # for a model with a single agent, this might be implicit.
+                    # Question: should blocks be tied to a single agent, or can multiple agents act within a block?
+                    # Working with the 'count'above, this block maps over all individuals in the population.
+      parameters:
+        - CRRA # unclear 
+        - DiscFac # will be referred to in the 'strategies' section
+        - BoroCnst
+        - PermGroFac
+
+      dynamics:
+        m: Rfree * a + y
+        c: !Control
+          inset: m # 'input', 'information set', what is the best name for this?
+          constraints:
+            - c < m - BoroCnst
+        y: p
+        p: PerrmGroFac[age] * p
+        a: m - c
+        u: c ** (1 - CRRA) / (1 - CRRA) # it doesn't hurt to include this as a variable in the dynamics.
+                                        # what will make it a special variable indicating it is 'reward'
+                                        # is how it's referenced later.
+
+    mortality: &mort # What if mortality dynamics are handled as just another block?
+
+      agent: consumer # for a model with a single agent, this might be implicit.
+                      # Question: should blocks be tied to a single agent, or can multiple agents act within a block?
+                      # Working with the 'count'above, this block maps over all individuals in the population.
+      parameters:
+        - LivPrb
+        - a_init_mu
+        - a_init_sigma
+        - p_init
+    
+      shocks: # could be 'exogenous'
+        live: !Bernoulli
+          p: LivPrb
+        k_init: !LogNormal
+          mu: a_init_mu
+          signa: a_init_sigma
+
+      dynamics:
+        k: a if live > 0 else k_init # need to figure out the SymPy parser's syntax for conditionals like these.
+        p: p if live > 0 else p_init
+        age: age + 1 if live > 0 else 0 # age is now a state variable of consumers.
+
+    terminate: &term # possibly a default
+      dynamics:
+        u : 0
+
+  links:
+    - !Link:
+      head: *cons
+      tail: *mort # alias here references previously defined block. Parser can detect these and create references in memory.
+
+    - !Link:
+      head: *mort
+      tail: *cons # alias here references previously defined block. Parser can detect these and create references in memory.
+      twist: # explicit renaming operations. By default, the variables of head are available by name to the variables of tail.
+        m: k
+      tick: #increments discrete time indicators. Can have more concise defaults.
+        # notice this does not happen at evey link
+        var: t # default. Could get more complex with multiple indicators
+      finite: # optional property indicating a finite horizon.
+              # maybe call this something more general as it's really about conditional flow control.
+        var: t # default
+        limit: 30
+        tail: &term # a finite horizon implies an 'alternate tail' when the condition is met.
+
+  strategies: # or 'solution' or 'problem'. But really this is about providing information needed
+              # to settle any decision rules.
+              # Could provide several definitions here, which can then be referred to in the simulation configuration.
+    - demo-hard: !HardRule:
+      block: &cons
+      decision_rule:
+        c : m / 2 # a trivial decision rule, not recommended
+    - bellman: !Bellman: # this should contain all the infomation needed for a recursive, Bellman-style solver.
+      block: &cons
+      reward: u # this is referencing a variable that was defined in dynamics. But it could also be a function of variables.
+      discount: DiscFac # Where did DiscFac come from? Note it was referenced as a parameter in the block. It could be a function.
+      continuation:
+        domain: a # designating the 'post states' with respect to the continuation.
+      # what else is needed for specifying the Bellman problem?
+    - lifetime_reward: !LifetimeReward #similar to !Bellman, but no continuation
+        reward: u #
+        discount: DiscFac 
+    - euler: !euler
+      - and so on # an euler equation formulation could also be here.
+
+calibration: &pf_calibration_1 # This list of values can mention any data that is referenced by blocks.
+             # it will likely be overridden in applications and so can provide reasonable defaults.
+  - LivPrb : 0.98
+  - PermGroFac:
+    - 1.1
+    - 1.2
+    - 1.3 # age-varying parameters may be input directly, but more likely this would reference an external file.
+
+
+# What about:
+solver: &pf_solver_egm
+  model: *perfect_foresight
+  calibration: *pf_calibration_1
+  method: !EGM
+    grid: tbd #
+    discretizations: tbd #
+    
+
+simulation: 
+  model: *perfect_foresight
+  calibration: *pf_calibration_1
+  strategies: tbd # somehow refer to the output of the &pf_solver_egm process here?
+
+# Whereas the blocks, links, and strategies are all
+# about containing the information that describes a model...
+# the solver and simulation engines are going to be
+# consumers of these model definitions files.
+
+# While they still may have YAML configurations, they will
+# be much more like a description of sequence of computational steps to execute
+# rather than descriptions of the model itself.
+
+# A good place to look for inspiration on this would be the configuration of
+# continuous integration processes, such as GitHub Actions.
+
+      
