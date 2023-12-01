@@ -61,11 +61,11 @@ model: &perfect_foresight
         u : 0
 
   links:
-    - !Link
+    a: !Link
       head: *cons
       tail: *mort # alias here references previously defined block. Parser can detect these and create references in memory.
 
-    - !Link
+    b: !Link
       head: *mort
       tail: *cons # alias here references previously defined block. Parser can detect these and create references in memory.
       twist: # explicit renaming operations. By default, the variables of head are available by name to the variables of tail.
@@ -77,17 +77,17 @@ model: &perfect_foresight
               # maybe call this something more general as it's really about conditional flow control.
         var: t # default
         limit: 30
-        tail: &term # a finite horizon implies an 'alternate tail' when the condition is met.
+        tail: *term # a finite horizon implies an 'alternate tail' when the condition is met.
 
   strategies: # or 'solution' or 'problem'. But really this is about providing information needed
               # to settle any decision rules.
               # Could provide several definitions here, which can then be referred to in the simulation configuration.
     - demo-hard: !HardRule
-      block: &cons
+      block: *cons
       decision_rule:
         c : m / 2 # a trivial decision rule, not recommended
     - bellman: !Bellman # this should contain all the infomation needed for a recursive, Bellman-style solver.
-      block: &cons
+      block: *cons
       reward: u # this is referencing a variable that was defined in dynamics. But it could also be a function of variables.
       discount: DiscFac # Where did DiscFac come from? Note it was referenced as a parameter in the block. It could be a function.
       continuation:
@@ -96,8 +96,6 @@ model: &perfect_foresight
     - lifetime_reward: !LifetimeReward #similar to !Bellman, but no continuation
         reward: u #
         discount: DiscFac 
-    - euler: !euler
-      - and so on # an euler equation formulation could also be here.
 
 calibration: &pf_calibration_1 # This list of values can mention any data that is referenced by blocks.
              # it will likely be overridden in applications and so can provide reasonable defaults.
