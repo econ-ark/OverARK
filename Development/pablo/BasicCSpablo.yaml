@@ -1,0 +1,81 @@
+initializer_block:
+    explain: initialize a basic consumer with no capital holdings
+
+    dynamics:
+        - start
+        - kLvl = 0.0
+
+basic_CS_block:
+    explain: consumption-saving block with simple unemployment shocks
+
+    symbols:
+        states: 
+            kLvl:
+                explain: current capital holdings, equivalent to last period's end-of-period assets
+                domain: R
+                approximate:
+                    spacing: log
+                    bounds: [kLvlMin, kLvlMin + 50]
+                    nodes: 96
+        controls: cLvl            
+        parameters: [DiscFac, CRRA, Rfree, UnempPrb]
+        distributions: [TranShkDstn]
+        functions:
+            vPfunc_now:
+                domain: R
+            vFunc_now:
+                domain: R
+                derivatives: vPfunc_now
+        next: vFunc_next
+
+    definitions:
+        aLvl: mLvl - cLvl
+        u: cLvl^(1-CRRA) / (1-CRRA)
+        uP: cLvl^(-CRRA)
+        v: u + DiscFac * vFunc_next(aLvl)
+
+    dynamics:
+        - bNrm = Rfree * kLvl
+        - yLvl ~ TranShkDstn
+        - mLvl = bLvl + yLvl
+        - cLvl @ (mLvl) := max v | aLvl >= 0.0
+
+    functions:
+        - vFunc_now @ (kLvl) = E[ v ]
+        - vPfunc_now @ (kLvl) = Rfree * E[ uP ]
+
+    solution:
+        method: EGM
+        discretize:
+            aLvl:
+                spacing: log
+                bounds: [aLvlMin, aLvlMin + 50]
+                nodes: 96
+        guess:
+            vFunc_now: !ConstantFunction: 0
+            vPfunc_now: !ConstantFunction: 0
+        
+    calibration:
+        CRRA: 2.0
+        Rfree: 1.03
+        UnempPrb: 0.05
+        aLvlMin: 0.0
+        kLvlMin: 0.0
+        TranShkDstn: !Discrete
+            probs: [UnempPrb, 1. - UnempPrb]
+            values: [0., 1. / (1-UnempPrb)]
+
+time_loop:
+    tick: True
+    twist:
+        kLvl: aLvl
+        vFunc_now: vFunc_next
+
+basic_CS_model:
+    content:
+        - link(initializer_block, basic_CS_block)
+        - link(basic_CS_block, time_loop, basic_CS_block)
+
+basic_consumer_type:
+    model: basic_CS_model
+    count: 10000

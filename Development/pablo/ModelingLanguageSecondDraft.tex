@@ -1,0 +1,222 @@
+
+       \documentclass[12pt,pdftex,letterpaper]{article}
+            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+            \usepackage{amsmath}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.30}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \newcommand{\N}{\mathbb{N}}
+			\newcommand{\R}{\mathbb{R}}
+			\newcommand{\E}{\mathbb{E}}
+			\newcommand{\der}[2]{\frac{\text{d}#1}{\text{d}#2}}
+			\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+						
+\begin{document}
+\begin{center}
+	\singlespace
+	\textbf{Comments on Designing a Language for Specifying Dynamic Models \\ Matthew N. White, December 5, 2023}
+\end{center}
+
+\section{Preface}
+
+This document is intended as an early draft of the design of a language for precisely representing models of intertemporal choice, and particularly to discuss with Pablo Winnant. The goal of the language is to be able to represent a wide array of intertemporal models in discrete time, using intuitive and clear syntax to represent mathematical ideas in a machine- and human-readable way. It draws on some of the style and syntax of \texttt{dolo} and \texttt{dolark}, which in turn inherit from \texttt{dynare}, but extends them to include more model description features. My intent is for the modeling format to look familiar and approachable to users of those packages, and to minimize the difficulty / complexity of reducing a model statement in our language into a \texttt{dolo}, \texttt{dolark}, or \texttt{dynare} statement through a parser.
+
+A key philosophical difference between those packages and what we seek to accomplish here is that our model statements are \textit{explicit} about implicit assumptions of (e.g.) \texttt{dolark}. This includes the recursive nature of a problem, as well as a statement of preferences (or more generally, how agent behavior is determined). The model structure explicitly states the problem being solved by an agent making a choice, rather than characterizing properties of their choice (e.g. arbitrage conditions).
+
+The core design concept is a ``block'', representing a sequence of model steps or events that naturally go together in some sense. The sequentiality of a model is reflected by chaining blocks together with ``connectors'' that specify how the end of one block connects to the start of another, including control flow. Both \texttt{dolo} and \texttt{dolark} implicitly assume that there is only one block, and it necessarily connects with itself recursively. In this proposal, such an assumption must be made explicitly (but with minimal effort).
+
+Like the predecessor model specification formats, our new language will use the \texttt{yaml} format to encode the model. Moreover, it will be recursive and modular in its design, so that model components (blocks and connectors) could be stored in the same file or different files and referenced by importation. Values and functions can be specified when a model block is created or filled in (or modified) later.
+
+This draft only includes information about specifying a ``micro model'', with no description of how ``macro objects'' should be described (and the equilibrium values characterized). Such capabilities \textit{are} an intended part of the modeling language (like in \texttt{dolark}), but are not reached here. The initial goal is to be confident that the widest array of microeconomic structures can be precisely specified in the language.
+
+Finally, to maximize confusion, I shall hereafter refer to our new language as \texttt{pablo}.
+
+
+\section{Specifying a Block}
+
+\noindent \textbf{Specifying a Block:} When specifying a \texttt{pablo} block, it gets its own indentation level, often the top level. Just like a \texttt{dolo} model statement, a \texttt{pablo} block descriptively \texttt{explain} itself, but it must include a \texttt{label} by which the block can be referenced. There is no concept of time \textit{within} a \texttt{pablo} block: any information from the ``past'' must be explicitly transmitted to it as a \texttt{state}.
+
+Beyond those labels, the core sections of a \texttt{pablo} block are the \texttt{symbols} it uses, the \texttt{dynamics} governing what ``happens'' during the block, additional \texttt{definitions} that serve as algebraic macros, \texttt{functions} that are constructed as part of solving the model, details about how the \texttt{solution} should be solved numerically, and the \texttt{calibration} of parameters and other variables. These will each be addressed in turn.
+
+\subsection{Specifying Symbols}
+
+Just like \texttt{dolo}, the top of a \texttt{pablo} block provides a declaration of \texttt{symbols} that will be used within that block. Whereas \texttt{dolo} only asks for a declared list of each type of \texttt{symbols}, in \texttt{pablo} the modeler can (optionally) specify additional information about each symbol, including its domain and meaning, by using additional indentation levels. The categories of \texttt{symbols}, and the additional information that can be included for each, are as follows:
+\begin{itemize}
+	\item \texttt{parameters}: Values that are constant \textit{within} the block. If listed in the style of \texttt{dolo}, they are assumed to each be real-valued. If listed with an additional \texttt{yaml} indentation level, the modeler can specify a parameter's \texttt{domain} (e.g., $\R_+$ or $\N$) and \texttt{explain} its meaning. The \texttt{domain} can be used by model interpreter software to evaluate the validity of a calibration, and the \texttt{explain}ation can be included in documentation.
+	
+	\item \texttt{states}: Information that is ``inbound'' into the block. The information in these variables is presumed to \textit{exist} by being drawn from the ``past'' (the prior block via a connector), but is not ever specified directly. If listed in the style of \texttt{dolo}, they are assumed to each be real-valued. If listed with an additional \texttt{yaml} indentation level, the modeler can specify a state's \texttt{domain} and \texttt{explain} its meaning, as with \texttt{parameters}.
+	
+	\item \texttt{controls}: Values that will be chosen by the agent. If the block is solved by a software pacakge, a mapping from the agent's information space (domain) to the control space (codomain) would be generated. As with the prior types, the modeler can optionally \texttt{explain} each control variables, as well as provide a \texttt{domain} and \texttt{codomain}. If this information is not provided, its domain is implied by the appropriate statement in \texttt{dynamics} (below), and its codomain is assumed to be $\R$.
+	
+	\item \texttt{functions}: Functional mappings that are created during the solution process, but are not themselves controls. This \texttt{symbols} category does not exist in \texttt{dolo} or \texttt{dolark}, instead being implicit as part of the solution method. If specified as a simple list, the (co)domain of each function should be inferred from the context in which it appears in the \texttt{dynamics}. Each of the \texttt{functions} can be optionally \texttt{explain}ed, and its \texttt{domain} and \texttt{codomain} can also be specified for clarity. Moreover, one or more of a function's first \texttt{derivatives} can be declared, naming other functions to specify the relationship among them.
+	
+	\item \texttt{distributions}: Distributions from which values that will be randomly drawn in the block. This is mostly a straight renaming of \texttt{exogenous} from \texttt{dolo}, to reduce confusion between the concepts of ``exogenous shock process'' vs ``exogenous to the agent''. These symbols can be defined as in \texttt{dolo} and \texttt{dolark}, or each \texttt{random} variable can be \texttt{explain}ed and have its \texttt{domain} (support) specified. Additionally, \texttt{pablo} differentiates between the \textit{distribution} that is drawn on and the \textit{variable} that holds a value from it.
+	
+	\item \texttt{next}: Objects (often functions) that are not defined \textit{within} the block (and never could be) because they come from the \textit{successor} block as part of the backward solution of the model (when appropriate). Objects named in \texttt{next} are referenced from the block's successor, potentially renamed through a \texttt{twist} (see below).
+\end{itemize}
+
+Note that other than the addition of \texttt{functions} and renaming \texttt{exogenous} to \texttt{distributions}, the only substantive change from \texttt{dolo} and \texttt{dolark} to \texttt{pablo} is the meaning of \texttt{states}. In \texttt{dolo}, the \texttt{states} are the inputs to the policy function-- its domain. In \texttt{pablo}, they specify the variables that exist at the ``start'' of the block, akin to what were called ``post-states'' in HARK. If a block has (essentially) only a control action in it, then the \texttt{states} correspond to the usual concept of state variables.
+
+
+\subsection{Specifying Dynamics}
+
+In \texttt{dolo} and \texttt{dolark}, the \texttt{equations} section specifies both \texttt{arbitrage} equations that provide conditions on the controls that must hold, as well as the \texttt{transition} describing how the prior period connect to this one. The \texttt{arbitrage} conditions \textit{implicitly} define the agent's problem by \textit{characterizing the solution} to the problem; in \texttt{pablo}, the problem that the agent wants to solve to choose their control is always stated explicitly. The \texttt{transition} statement in \texttt{dolo} hardwires the idea that the model is recursive, connecting directly to itself in a loop. In \texttt{pablo}, we want to generalize the model's sequentiality, with the information from \texttt{transitions} handled in the \texttt{dynamics} section, while the concept of intertemporality or sequentiality is handled by a connector.
+
+The syntax of the \texttt{dynamics} section is similar to that of \texttt{dolo} and \texttt{dolark} except that there is no reference to time \texttt{t}, which does not exist internal to a block. Each entry in \texttt{dynamics} should specify a single ``step'' of the model that is acted out in sequence. These ``steps'' can be one of the following:
+
+\begin{itemize}
+	\item \textbf{Initialization}: The \texttt{start} directive indicates the moment of creation or model entry for the agent. A block that \texttt{start}s the model should not have any \texttt{states}, as nothing precedes it.
+	
+	\item \textbf{Explicit determination:} The value of a variable (on the LHS of an equation \texttt{=}) is explicitly determined by an algebraic statement on the RHS of that equation, using parameters, functions, and variables already determined in the block. The \texttt{states} are considered to exist at the outset of the block.
+	
+	\item \textbf{Implicit determination:} The value of N variables (named on the LHS of an assignment \texttt{:=}) is implicitly determined by the solution to an algebraic system of N equations specified on the RHS, in brackets and comma separated. Other than the variables implicitly determined by this system, the other symbols in each equation should already exist as parameters, functions, or variables already determined in the block.
+	
+	\item \textbf{Random determination:} The value of one or more variables (named on the LHS of a random draw \texttt{$\sim$}) is randomly determined by drawing from a \texttt{distribution} on the RHS. This is a very slight change from \texttt{dolo} and \texttt{dolark}, separating the distribution from the variables drawn from it.
+	
+	\item \textbf{Control choice:} The value of one or more control variables (named on the LHS of a function declaration \texttt{@}) is determined by the choice of the block's actor, based on variables named in parentheses immediately following the \texttt{@}-- the agent's \textit{information set} at the moment of choice, and consequently the domain of their policy function. The value of the control is implicitly determined (\texttt{:=}) by a problem on the RHS, often value maximization. 	Constraints on the choice can be specified with a vertical bar \texttt{|} after the problem, followed by a list of algebraic (in)equalities (comma separated, in brackets). As usual, other than the control variables in this step, the constraints should include only parameters, functions, and variables already determined in the block.
+\end{itemize}
+
+In general, the \texttt{dynamics} are an explicit statement of \textit{what happens} in a block, step by step. It no more than a description of the sequence of events during the block, including a statement of the agent's ``motivation'' in making a choice of control.
+
+
+\subsection{Specifying Definitions, Functions, and Calibration}
+
+Both \texttt{dolo} and \texttt{dolark} allow the modeler to specify \texttt{definitions} that serve as algebraic ``macros'': mathematical objects that can be substituted into the \texttt{transitions} as warranted. This functionality should exist in \texttt{pablo} as well, with the sole change being the removal of time \texttt{t} references. In some cases, no additional value is added by including a \texttt{definition} rather than including it as a sequential step in the \texttt{dynamics}, but they can be useful when dealing with systems of equations.
+
+Likewise, the \texttt{calibration} functionality in \texttt{pablo} should be identical to \texttt{dolo}, \texttt{dolark}, and \texttt{dynare}, with the addition that distributions can be specified in this block as well. That is, rather than specifying the nature of distributions in the \texttt{exogenous} block, the same information is instead passed as part of the \texttt{calibration}, as there is functionally no distinction between the two that was not already resolved by the \texttt{symbols} declaration. As in \texttt{dolo} (etc), additional variables can be defined by algebraic declaration.
+
+Each entry in the \texttt{functions} block indicates a function declared in the \texttt{symbols} sub-entry to the left of a function declaration (\texttt{@}), followed by its domain variables in parentheses. The value of the function at any point in its domain is then determined (either explicitly \texttt{=} or implicitly \texttt{:=}) by an expression on the RHS.
+
+
+\subsection{Specifying a Numeric Solution Method}
+
+While the specification of control variables in \texttt{dynamics} describes how the agent makes decisions, it does not provide guidance on how the solution to the agent's problem should actually be \textit{found} in practice. Directives of this kind can be provided in \texttt{pablo} in a block's \texttt{solution} entry, which contains (at minimum) a \texttt{method} entry. Additional entries might include choices for the \texttt{discretizations} and/or \texttt{approximations} used in the numeric solution method, or an initial \texttt{guess} of the \texttt{functions} to use as a starting point.
+
+We leave all of this information intentionally vague here, as this is merely a draft proposal, not a functioning software package. The intended message is simply that information about how to \textit{solve the model in practice} is designated separately from the statement of the\textit{pure mathematical form} of the model.
+
+
+\subsection{Operations on Blocks}
+
+Once a block has been defined (declared), it does not constitute a model in and of itself. As originally declared, a block might not have all of its values ``filled in''-- it might only be a template without parameter values. For a lifecycle model, the modeler can create copies of blocks using YAML's notation for anchors and aliases. Parameter values can be individually filled in on these copied blocks using YAML's override feature. For example, in a lifecycle model, the same kind of block (period) might recur repeatedly, with the same mathematical structure, but some parameter values might vary by age.\footnote{We are developing a format for more parsimoniously specifying sequences of lifecycle parameters.} Most importantly, a block can be \texttt{connect}ed sequentially to another block (or itself!) with a connector, discussed below.
+
+
+\section{Connecting Blocks}
+
+Connectors are the interstitial material between blocks-- the interface between chunks of a model. This section describes how connectors work and how blocks can be assembled into a group by using connectors.
+
+
+\subsection{Connector Basics}
+
+Very little actually \textit{happens} in a connector; the only operations or steps are as follows:
+
+\begin{itemize}
+	\item \textbf{Relabeling:} Some variables determined in the predecessor block should be passed to the successor block's \texttt{states} via a simple mapping given by a \texttt{twist} dictionary. Any variable that was \textit{not} renamed with twist is assumed to keep its same label (for the purpose of the successor block's \texttt{states} looking for it).
+	
+	\item \textbf{Time increment:} Einstein famously said that time is what prevents everything from happening all at once. If a connector has the \texttt{tick} declaration, this means that discrete time advances during this connection. The absence of a \texttt{tick} declaration indicates that the next block takes place in the same segment of measurable time. A \texttt{tick} is used solely for accounting purposes, e.g.\ properly tracking simulated data or conveniently referencing aspects of the solution (in software that uses the \texttt{pablo} format as an input).
+	
+	\item \textbf{Flow control:} Sometimes an actor faces entirely different kinds of situations depending on events that are resolved as the model is acted out. Any model branching should be handled in a connector using the \texttt{?} operator. The \texttt{stop} directive can be used as part of flow control to indicate that the actor ceases operation.
+\end{itemize}
+
+The format for specifying a connector is a simple \texttt{yaml} statement. Its only fields are \texttt{twist} (a symbolic remapping) and an optional \texttt{tick} boolean (default \texttt{False}).
+
+
+\subsection{Assembling a Group}
+
+Blocks and connectors can be assembled using the \texttt{link} directive in a group environment-- another top level \texttt{yaml} indentation. When assembling a model, a block or connector can be succeeded by a block, another connector, or nothing at all (in the special case of guaranteed termination in a connector).
+
+Suppose that blocks named \texttt{block\#} have been defined, as well as a connector called \texttt{connector}. Each of the following are examples of (potentially) valid syntax for the declarations in a \texttt{pablo} group that link blocks and connectors:
+
+\begin{itemize}
+	\item \texttt{link(block0, connector, block1)} says that \texttt{block0} flows into \texttt{block1}; variables from the former are relabeled for the latter using the \texttt{twist} data in \texttt{connector}.
+	
+	\item \texttt{link(block0, block1)} says that \texttt{block0} flows into \texttt{block1}, and no symbolic relabeling is needed.
+	
+	\item \texttt{link(block0, connector, block0)} says that \texttt{block0} flows into itself recursively; the connector must appropriately label end-of-block values to the \texttt{states}.
+	
+	\item \texttt{link(block0, connector, d ? [block1, block2, block3])} says that \texttt{block0} flows into one of three blocks depending on the value of \texttt{d}, which should be 0, 1, or 2.
+		
+	\item \texttt{link(block0, connector)} says that \texttt{block0} will flow into \textit{something}, but it is left undefined at this time.
+	
+	\item \texttt{link(connector, block1)} says that something will flow into \texttt{block1} using the relabeling from \texttt{connector}, but it is left undefined at this time.
+	
+\end{itemize}
+
+A properly specified \texttt{pablo} group has up to one block (or connector) with an undefined predecessor and up to one connector with an undefined successor. That is, there is (at most) one way in and one way out-- a defined beginning and end. If the group does not have a ``way in'', it should have a \texttt{start} directive in one of its blocks. A group is declared as its own YAML entry, listing the \texttt{link}ed blocks in its \texttt{content} entry.
+
+\subsection{Operations on Groups}
+
+Once a group has been declared, it acts much like a ``superblock'' and can be treated as if it were a block, in terms of its \texttt{states} (of its ``entry block'') and potential ``outputs'' (the variables determined within it). Groups can thus be linked together to form larger groups.
+
+%The primary use case for copying and linking groups is to form a lifecycle model in which the structure of each period is identical, but (some of) its data varies over time. While I am not specifying it in this document, I am confident that we can devise a convenient format for specifying time-varying parameters and have them easily imported into a finite horizon sequence of groups.
+
+
+\section{Specifying Agents}
+
+To specify a (population of \textit{ex ante} homogeneous) agent(s) who make choices about their controls, the modeler does so by creating a YAML entry whose key data is the group referenced in its \texttt{model} entry. A well specified group to pass as a \texttt{model} for an agent type has exactly one \texttt{start} directive inside it, has no undefined successors nor predecessors, and is fully connected as a directional graph. That is, the model specifies where to start, can never ``escape'' its bounds (will \texttt{stop} or loop with certainty), and has no blocks that can't be reached.
+
+An agent type might also specify the number or size of its population (e.g.\ that there are ten thousand such agents, or that there is a continuum of such agents with relative mass 3.6), as well as other data. These details are left unspecified as of this draft.
+
+
+\section{Example Model and YAML File}
+
+To make the draft specification more concrete, we include an extremely simple example model: an infinite horizon consumption-saving model with only transitory income risk.
+
+\subsection{Model Description}
+
+In each discrete period $t$, the agent receives stochastic labor income $Y_t$ from distribution $F$, then chooses how much of their market resources $M_t$ to consume $C_t$ (yielding felicity via a CRRA function) and how much to save in assets $A_t$ (with a risk free return factor of $\mathsf{R}$), subject to a liquidity constraint. The agent seeks to maximize their expected present discounted value of time-separable utility, with discount factor $\beta$. Their problem is given by:
+\begin{equation*}
+V(M_t) = \max_{C_t} U(C_t) + \beta \E[V(M_{t+1})] ~~\text{s.t.}
+\end{equation*}
+\begin{equation*}
+K_t = A_{t-1}, \qquad B_t = \mathsf{R} K_t, \qquad M_{t} = B_t + Y_{t},
+\end{equation*}
+\begin{equation*}
+A_t = M_t - C_t, \qquad A_t \geq 0,
+\end{equation*}
+\begin{equation*}
+Y_{t} \sim F, \qquad U(C) = \frac{C^{1-\rho}}{1-\rho}.
+\end{equation*}
+
+\subsection{Correspondence to PABLO}
+
+This basic model can be implemented in \texttt{pablo} with a single workhorse block, which contains all events for one period, and an initializer block that provides an entry point. The main block is recursively linked to itself with a simple connector, which relabels end-of-period $A$ as beginning-of-period $K$ and increments time. The model parameters are simply $\beta$, $\rho$, and $\mathsf{R}$, and unemployment probability $\mho$; the only distribution is $F$ (specified with a trivial discrete distribution for simplicity).
+
+The \texttt{initializer\_block} is trivial: it initializes a model agent with no wealth. The top of the \texttt{basic\_CS\_block} is largely self-explanatory and is intended to look a lot like \texttt{dolark}. The new features include an entry for how to discretely \texttt{approximate} the continuous domain of \texttt{kLvl} when appropriate, the link between the value function and the marginal value function, and the existence of a \texttt{next} entry that references objects from the block's successor (for solution purposes only).
+
+As in \texttt{dolo} and \texttt{dolark}, the \texttt{definitions} entry provides algebraic substitutions that can be used when solving or simulating the model. Note that I have created variables for the utility flow, marginal utility, and continuation payoff as part of the \texttt{definitions}. The \texttt{dynamics} break the sequence of the model into small bits-- probably smaller than you might expect. In the model, bank balances \texttt{bNrm} are the interest factor times capital holdings, income \texttt{yLvl} is drawn from the simple shock distribution, and market resources \texttt{mLvl} are the sum of bank balances and income flow. The choice of \texttt{cLvl} is specified as spending on \texttt{mLvl} and solves the value maximization problem subject to the liquidity constraint.
+
+In the \texttt{functions} entry, we define the beginning-of-block (marginal) value function over $K_t$. Note that this \text{does not} correspond to the ordinary Bellman value function $V(M_t)$ in the model statement. It is the expected (marginal) value of \textit{entering} the period with $K_t$ in capital (previous $A_{t-1}$), taking account of the income risk that is about to be resolved. The typical Bellman value function could be constructed if the workhorse block were split into smaller blocks, but this document provides the simplest implementation.
+
+The \texttt{solution} entry provides information on how the model should be solved. In this case, it indicates that the endogenous grid method (EGM) should be used and includes a discretization for the end-of-period state variable \texttt{aLvl}, as well as a trivial guess as a starting point. The \texttt{calibration} entry just below the \texttt{solution} should have no surprises.
+
+The crux of \texttt{pablo}'s model structure is that blocks are linked to each other in a sequence, which might recur on itself. For this very basic model, we need only one connector, labeled as \texttt{time\_loop}, that connects the consumption-saving block back on itself. The \texttt{twist} entry says that \texttt{kLvl} in the successor block should be mapped to \texttt{aLvl} in the predecessor block, and \texttt{vFunc\_next} in the predecessor block should map to \texttt{vFunc\_now} in the successor block (for backward solution purposes). The only required links are to chain the initializer into the main block (with no connector needed), and the main block back on itself (through the \texttt{time\_loop} connector). This specifies the microeconomic model, which can then be given to a consumer type with 10,000 agents.
+
+\end{document}
