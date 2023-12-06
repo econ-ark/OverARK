@@ -1,7 +1,7 @@
 initializer_block:
     dynamics:
         - start
-        - kLvl = 0.0
+        - aNrmPrev = 0.0
         - pLvlPrev = 1.0
 
 
