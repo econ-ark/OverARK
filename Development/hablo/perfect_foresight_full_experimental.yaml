@@ -7,7 +7,6 @@ model: &perfect_foresight
       variables:
         - m : R++ # could use this space to document out all the variables of an agent, but this is also implicit in the block definitions.
                 # not enforcing that this list be here makes the configuration more extensible, i.e
-        - etc. 
 
   blocks:
     consumption: &cons # block definition begins with name of the block. Alias 
@@ -27,7 +26,7 @@ model: &perfect_foresight
           constraints:
             - c < m - BoroCnst
         y: p
-        p: PerrmGroFac[age] * p
+        p: PermGroFac[age] * p
         a: m - c
         u: c ** (1 - CRRA) / (1 - CRRA) # it doesn't hurt to include this as a variable in the dynamics.
                                         # what will make it a special variable indicating it is 'reward'
@@ -61,11 +60,11 @@ model: &perfect_foresight
         u : 0
 
   links:
-    a: !Link
+    a: # don't use tag here because need references...
       head: *cons
       tail: *mort # alias here references previously defined block. Parser can detect these and create references in memory.
 
-    b: !Link
+    b: &tick
       head: *mort
       tail: *cons # alias here references previously defined block. Parser can detect these and create references in memory.
       twist: # explicit renaming operations. By default, the variables of head are available by name to the variables of tail.
@@ -108,7 +107,28 @@ calibration: &pf_calibration_1 # This list of values can mention any data that i
 
 # What about:
 solver: &pf_solver_egm
-  model: *perfect_foresight
+  model: &discretized_pf
+    <<: *perfect_foresight
+    blocks:
+      <<: *cons
+      mortality: &mort_disc
+        <<: *mort
+        shocks:
+          k_init: !LogNormal
+            mu: a_init_mu
+            signa: a_init_sigma
+            discretize_N: 7
+            discretize_method: equiprobable
+          live: !Bernoulli
+            p: LivPrb
+    links:
+      a:
+        head: *cons
+        tail: *mort_disc
+      b:
+        head: *mort_disc
+        tail: *cons
+        <<: *tick
   calibration: *pf_calibration_1
   method: !EGM
     grid: tbd #
@@ -116,7 +136,7 @@ solver: &pf_solver_egm
     
 
 simulation: 
-  model: *perfect_foresight
+  model: *discretized_pf
   calibration: *pf_calibration_1
   strategies: tbd # somehow refer to the output of the &pf_solver_egm process here?
 
