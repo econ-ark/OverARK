@@ -1,81 +1,67 @@
-initializer_block:
-    explain: initialize a basic consumer with no capital holdings
-
-    dynamics:
-        - start
-        - kLvl = 0.0
-
 basic_CS_block:
     explain: consumption-saving block with simple unemployment shocks
-
     symbols:
         states: 
             kLvl:
-                explain: current capital holdings, equivalent to last period's end-of-period assets
-                domain: R
-                approximate:
-                    spacing: log
-                    bounds: [kLvlMin, kLvlMin + 50]
-                    nodes: 96
-        controls: cLvl            
+                explain: current capital holdings level, equivalent to last period's end-of-period assets
+                grid: vFunc_end.domain.grid
+        controls: cLvl
         parameters: [DiscFac, CRRA, Rfree, UnempPrb]
         distributions: [TranShkDstn]
-        functions:
-            vPfunc_now:
-                domain: R
-            vFunc_now:
-                domain: R
-                derivatives: vPfunc_now
-        next: vFunc_next
+        functions: vFunc_beg
+        end: vFunc_end
 
     definitions:
         aLvl: mLvl - cLvl
         u: cLvl^(1-CRRA) / (1-CRRA)
         uP: cLvl^(-CRRA)
-        v: u + DiscFac * vFunc_next(aLvl)
+        v: u + DiscFac * vFunc_end(aLvl)
 
     dynamics:
-        - bNrm = Rfree * kLvl
+        - bLvl = Rfree * kLvl
         - yLvl ~ TranShkDstn
         - mLvl = bLvl + yLvl
-        - cLvl @ (mLvl) := max v | aLvl >= 0.0
+        - cLvl @ (mLvl) := argmax v | aLvl >= 0.0
 
     functions:
-        - vFunc_now @ (kLvl) = E[ v ]
-        - vPfunc_now @ (kLvl) = Rfree * E[ uP ]
-
-    solution:
-        method: EGM
-        discretize:
-            aLvl:
-                spacing: log
-                bounds: [aLvlMin, aLvlMin + 50]
-                nodes: 96
-        guess:
-            vFunc_now: !ConstantFunction: 0
-            vPfunc_now: !ConstantFunction: 0
+        - vFunc_beg @ (kLvl) = E[ v ]
+        - vFunc_beg.der @ (kLvl) = Rfree * E[ uP ]
         
     calibration:
         CRRA: 2.0
         Rfree: 1.03
         UnempPrb: 0.05
-        aLvlMin: 0.0
-        kLvlMin: 0.0
         TranShkDstn: !Discrete
             probs: [UnempPrb, 1. - UnempPrb]
             values: [0., 1. / (1-UnempPrb)]
+
+    solution:
+        method: EGM
+        grids: aLvl: vFunc_end.domain.grid
+        guess:
+            vFunc_beg:
+                !ConstantFunction:
+                    value: 0.0
+                    grid:
+                        spacing: log
+                        min: 0.0
+                        max: 50.0
+                        nodes: 96
 
 time_loop:
     tick: True
     twist:
         kLvl: aLvl
-        vFunc_now: vFunc_next
+        vFunc_beg: vFunc_end
 
 basic_CS_model:
     content:
-        - link(initializer_block, basic_CS_block)
         - link(basic_CS_block, time_loop, basic_CS_block)
 
 basic_consumer_type:
     model: basic_CS_model
-    count: 10000
+    simulation:
+        style: MC
+        count: 10000
+        periods: 100
+        initial: kLvl: 0.0
