@@ -1,0 +1,213 @@
+transitory_income_block:
+    explain: arrival of labor income with transitory shock
+
+    symbols:
+        states:
+            bLvl:
+                explain: current bank balances, to which labor income will be added
+
+        distributions:
+            TranShkDstn:
+                explain: transitory income shock distribution
+
+        functions:
+            vFunc_before_income:
+                explain: value function over bLvl, as of the moment just before labor income is realized
+
+        end:
+            vFunc_after_income: value function over mLvl, defined by successor block
+
+    definitions:
+        mLvl: bLvl + yLvl
+
+    dynamics:
+        yLvl ~ TranShkDstn
+
+    functions:
+        vFunc_before_income:@ (bLvl) = E[ vFunc_after_income(mLvl) ]
+        vFunc_before_income.der:@ (bLvl) = E[ vFunc_after_income.der(mLvl) ]
+
+
+consumption_choice_block:
+    explain: consumption decision with additive CRRA utility
+
+    symbols:
+        states: 
+            mLvl:
+                explain: current market resources, will be divided between consumption and saving
+
+        controls: cLvl
+
+        parameters: CRRA
+
+        functions:
+            vFunc_before_con_choice:
+                explain: value function over mLvl, as of the moment the agent chooses consumption
+
+        end:
+            vFunc_after_con_choice:
+                explain: value function over aLvl, defined by successor block
+
+    definitions:
+        aLvl: mLvl - cLvl
+        u: cLvl^(1-CRRA) / (1-CRRA)
+        uP: cLvl^(-CRRA)
+        v: u + vFunc_after_con_choice(aLvl)
+
+    dynamics:
+        - cLvl @ (mLvl) := argmax v | aLvl >= 0.0
+
+    functions:
+        - vFunc_before_con_choice @ (mLvl) = v
+        - vFunc_before_con_choice.der @ (mLvl) = uP
+
+
+portfolio_choice_block:
+    explain: choice over risky portfolio share
+
+    symbols:
+        states:
+            aLvl:
+                explain: current wealth will be divided between risky and riskless assets
+
+        controls: RiskShare
+
+        functions:
+            vFunc_before_share_choice:
+                value function over aLvl, as of the moment the agent chooses risky portfolio share
+
+        end:
+            vFunc_after_share_choice:
+                explain: value function over aLvl and RiskShare, defined by successor block
+
+    definitions:
+        v: vFunc_after_share_choice(aLvl, RiskShare)
+        vP: vFunc_after_share_choice.der['aLvl'](aLvl, RiskShare)
+
+    dynamics:
+        - RiskShare @ (aLvl) := argmax v | [RiskShare >= 0.0, RiskShare <= 1.0]
+
+    functions:
+        - vFunc_before_share_choice @ (aLvl) = v
+        - vFunc_before_share_choice.der @ (aLvl) = vP
+
+
+risk_free_return_block:
+    explain: obtaining risk-free returns on retained assets
+
+    symbols:
+        states:
+            kLvl:
+                explain: current capital holdings level, equivalent to last period's end-of-period assets
+
+        parameters: Rfree
+
+        functions:
+            vFunc_before_return:
+                explain: value function over kLvl, as of the moment just before the risk free return arrives
+
+        end:
+            vFunc_after_return: value function over bLvl, defined by successor block
+
+        definitions:
+            bLvl: Rfree * kLvl
+
+        functions:
+            vFunc_before_return @ (kLvl) = vFunc_after_return(bLvl)
+            vFunc_before_return.der @ (kLvl) = Rfree * vFunc_after_return.der(bLvl)
+
+
+risky_return_block:
+    explain: obtaining realized returns from a two asset risky portfolio
+
+    symbols:
+        states:
+            kLvl:
+                explain: current capital holdings level, equivalent to last period's end-of-period assets
+            RiskShare:
+                explain: share of wealth in the risky asset
+
+        parameters: Rfree
+
+        distributions: RiskyDstn
+
+        functions:
+            vFunc_before_return:
+                explain: value function over kLvl, as of the moment just before the risk free return arrives
+
+        end:
+            vFunc_after_return: value function over bLvl, defined by successor block
+
+        definitions:
+            FreeShare: 1.0 - RiskShare
+            Rport: RiskShare * Risky + FreeShare * Rfree
+            bLvl: Rport * kLvl
+
+        dynamics:
+            - Risky ~ RiskyDstn
+
+        functions:
+            vFunc_before_return @ (kLvl,RiskShare) = E[ vFunc_after_return(bLvl) ]
+            vFunc_before_return.der['kLvl'] @ (kLvl,RiskShare) = E[ Rport * vFunc_after_return.der(bLvl) ]
+
+
+discounting_block:
+    explain: intertemporal discounting by constant factor
+    
+    symbols:
+        parameters: Rfree
+
+        functions:
+            vFunc_discounted:
+                explain: next period's value function, intertemporally discounted
+
+        end: vFunc_next_period
+
+    functions:
+        vFunc_discounted @ (vFunc_next_period.args) = DiscFac * vFunc_next_period @ (vFunc_next_period.args)
+
+
+connect_return_to_income:
+    twist:
+        vFunc_after_return: vFunc_before_income
+
+connect_income_to_consumption:
+    twist:
+        vFunc_after_income: vFunc_before_con_choice
+
+connect_consumption_to_future:
+    twist:
+        vFunc_after_con_choice: vFunc_discounted
+
+connect_consumption_to_portfolio:
+    twist:
+        vFunc_after_con_choice: vFunc_before_share_choice
+
+connect_portfolio_to_future:
+    twist:
+        vFunc_after_share_choice: vFunc_discounted
+
+advance_time:
+    tick: True
+    twist:
+        aLvl: kLvl
+        vFunc_next_period: vFunc_before_return
+
+
+basic_consumption_saving_period:
+    explain: one period consumption-saving with risk-free asset and transitory labor income risk
+
+    content:
+        - link(risk_free_return_block, connect_return_to_income, transitory_income_block)
+        - link(transitory_income_block, connect_income_to_consumption, consumption_choice_block)
+        - link(consumption_choice_block, connect_consumption_to_future, discounting_block)
+
+
+consumption_portfolio_period:
+    explain: one period consumption-saving with allocation between risk-free and risky asset, plus transitory labor income risk
+
+    content:
+        - link(risky_return_block, connect_return_to_income, transitory_income_block)
+        - link(transitory_income_block, connect_income_to_consumption, consumption_choice_block)
+        - link(consumption_choice_block, connect_consumption_to_portfolio, portfolio_choice_block)
+        - link(portfolio_choice_block, connect_portfolio_to_future, discounting_block)
