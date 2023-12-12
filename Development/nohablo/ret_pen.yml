@@ -1,0 +1,193 @@
+---
+name: working
+description: working life before retirement
+
+states:
+  - &aNrm
+    name: aNrm
+    domain: [0.0, inf]
+    description: normalized assets after consumption
+  - &bNrm
+    name: bNrm
+    domain: [0.0, inf]
+    description: normalized balance in pension fund
+  - &lNrm
+    name: lNrm
+    domain: [0.0, inf]
+    description: normalized liquid assets after deposit
+  - &mNrm
+    name: mNrm
+    domain: [0.0, inf]
+    description: normalized market resources
+  - &nNrm
+    name: nNrm
+    domain: [0.0, inf]
+    description: normalized net retirement balance
+
+controls:
+  - &cNrm
+    name: cNrm
+    domain: [0.0, lNrm]
+    description: normalized consumption
+  - &dNrm
+    name: dNrm
+    domain: [0.0, mNrm]
+    description: normalized pension deposit
+
+distributions: # exogenous section defining the kind of shocks which drive the model
+  - &perm
+    name: perm
+    description: permanent income shock
+    distribution: !MeanOneLogNormal
+      std: std_perm
+  - &tran
+    name: tran
+    description: transitory income shock
+    distribution: !MeanOneLogNormal
+      std: std_tran
+  - &risky
+    name: risky
+    description: risky asset return
+    distribution: !LogNormal
+      mean: mean_risky
+      std: std_risky
+
+blocks:
+  - name: deposit
+    description: deposit block
+    states: [*mNrm, *nNrm]
+    controls: [*dNrm]
+    parameters: [chi]
+    equations:
+      objective:
+        - v(mNrm, nNrm) = w(lNrm, bNrm)
+      transitions:
+        - lNrm = mNrm - dNrm
+        - bNrm = nNrm + dNrm + g(dNrm)
+      definitions:
+        - g(dNrm) = chi * log(dNrm + 1)
+
+  - name: consumption
+    description: consumption block
+    states: [*lNrm, *bNrm]
+    controls: [*cNrm]
+    parameters: [CRRA, DiscFac, LivPrb]
+    equations:
+      objective:
+        - v(lNrm, bNrm) = u(cNrm) + beta * w(aNrm, bNrm)
+      transitions:
+        - aNrm = lNrm - cNrm
+        - bNrm = bNrm
+      definitions:
+        - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+        - beta = DiscFac * LivPrb
+
+  - name: expectation
+    description: expectation block
+    states: [*aNrm, *bNrm]
+    distributions: [*perm, *tran, *risky]
+    parameters:
+      [CRRA, Rfree, PermGroFac, std_perm, std_tran, mean_risky, std_risky]
+    equations:
+      objective:
+        - v(aNrm, bNrm) = PermAdj^(1-CRRA) * w(mNrm', nNrm')
+      transitions:
+        - mNrm' = Rfree * aNrm / PermAdj + tran
+        - nNrm' = risky * bNrm / PermAdj
+      definitions:
+        - PermAdj = PermGroFac * perm
+        - Rport = (Rfree * aNrm + risky * bNrm) / (aNrm + bNrm)
+
+links:
+  lifecycle:
+    - v(mNrm, nNrm) = w(mNrm + nNrm)
+
+calibration:
+  DiscFac: 0.96
+  CRRA: 2.0
+  LivPrb: 0.99
+  Rfree: 1.03
+  PermGroFac: 1.01
+  chi: 0.1
+  std_perm: 0.1
+  std_tran: 0.1
+  mean_risky: 1.08
+  std_risky: 0.2
+
+options:
+  repeat: 20
+
+  grids: &grids
+    min: 1e-6
+    max: 100
+    size: 100
+    spacing: log
+
+  states:
+    aNrm: *grids
+    bNrm: *grids
+    lNrm: *grids
+
+  approx: &approx
+    size: 7
+    method: gauss-hermite
+
+  distributions:
+    perm: *approx
+    tran: *approx
+    std_risky:
+      size: 3
+      method: gauss-hermite
+
+---
+name: retirement
+description: working life after retirement
+
+states:
+  - &mNrm
+    name: mNrm
+    domain: [0.0, inf]
+    description: normalized market resources
+
+controls:
+  - &cNrm
+    name: cNrm
+    domain: [0.0, mNrm]
+    description: normalized consumption
+
+equations:
+  objective:
+    - v(mNrm) = u(cNrm) + beta * w(mNrm')
+  transitions:
+    - aNrm = mNrm - cNrm
+    - mNrm' = Rfree * aNrm + 1
+  definitions:
+    - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+    - beta = DiscFac * LivPrb
+
+links:
+  terminal:
+    - v(mNrm) = u(cNrm)
+  block:
+    - w(mNrm') = v(mNrm)
+    - mNrm' = mNrm
+  definitions:
+    - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+
+calibration:
+  DiscFac: 0.96
+  CRRA: 2.0
+  Rfree: 1.03
+  LivPrb: 0.99
+
+options:
+  repeat: 9
+
+  grids: &grids
+    min: 1e-6
+    max: 100
+    size: 100
+    spacing: log
+
+  states:
+    mNrm: *grids
