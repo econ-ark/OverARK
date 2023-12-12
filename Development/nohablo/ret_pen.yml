@@ -6,23 +6,31 @@ states:
   - &aNrm
     name: aNrm
     domain: [0.0, inf]
-    description: normalized assets after consumption
+    description: normalized (a)ssets after consumption
   - &bNrm
     name: bNrm
     domain: [0.0, inf]
-    description: normalized balance in pension fund
+    description: normalized (b)alance in pension fund after deposit
+  - &jNrm
+    name: jNrm
+    domain: [0.0, inf]
+    description: normalized wealth (j)ust before income
+  - &kNrm
+    name: kNrm
+    domain: [0.0, inf]
+    description: normalized pension (k)apital before income
   - &lNrm
     name: lNrm
     domain: [0.0, inf]
-    description: normalized liquid assets after deposit
+    description: normalized (l)iquid assets after deposit
   - &mNrm
     name: mNrm
     domain: [0.0, inf]
-    description: normalized market resources
+    description: normalized (m)arket resources
   - &nNrm
     name: nNrm
     domain: [0.0, inf]
-    description: normalized net retirement balance
+    description: normalized (n)et retirement balance
 
 controls:
   - &cNrm
@@ -53,6 +61,22 @@ distributions: # exogenous section defining the kind of shocks which drive the m
       std: std_risky
 
 blocks:
+  - name: expectation
+    description: expectation block
+    states: [*jNrm, *kNrm]
+    distributions: [*perm, *tran, *risky]
+    parameters:
+      [CRRA, Rfree, PermGroFac, std_perm, std_tran, mean_risky, std_risky]
+    equations:
+      objective:
+        - v(jNrm, kNrm) = PermAdj^(1-CRRA) * w(mNrm, nNrm)
+      transitions:
+        - mNrm = Rfree * jNrm / PermAdj + tran
+        - nNrm = risky * kNrm / PermAdj
+      definitions:
+        - PermAdj = PermGroFac * perm
+        - Rport = (Rfree * jNrm + risky * kNrm) / (jNrm + kNrm)
+
   - name: deposit
     description: deposit block
     states: [*mNrm, *nNrm]
@@ -82,25 +106,11 @@ blocks:
         - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
         - beta = DiscFac * LivPrb
 
-  - name: expectation
-    description: expectation block
-    states: [*aNrm, *bNrm]
-    distributions: [*perm, *tran, *risky]
-    parameters:
-      [CRRA, Rfree, PermGroFac, std_perm, std_tran, mean_risky, std_risky]
-    equations:
-      objective:
-        - v(aNrm, bNrm) = PermAdj^(1-CRRA) * w(mNrm', nNrm')
-      transitions:
-        - mNrm' = Rfree * aNrm / PermAdj + tran
-        - nNrm' = risky * bNrm / PermAdj
-      definitions:
-        - PermAdj = PermGroFac * perm
-        - Rport = (Rfree * aNrm + risky * bNrm) / (aNrm + bNrm)
-
 links:
-  lifecycle:
-    - v(mNrm, nNrm) = w(mNrm + nNrm)
+  block: # links between blocks, determines what w(aNrm, bNrm) means in the last block (consumption)
+    - w(aNrm, bNrm) = v(jNrm, kNrm)
+  lifecycle: # links between lifecycle blocks (stages), determines what w(aNrm, bNrm) means in the last block (consumption) given the first block of the next life stage
+    - w(aNrm, bNrm) = v(aNrm + bNrm)
 
 calibration:
   DiscFac: 0.96
@@ -115,9 +125,9 @@ calibration:
   std_risky: 0.2
 
 options:
-  repeat: 20
+  repeat: 20 # repeated 20 times given above calibration means the same values are used 20 times
 
-  grids: &grids
+  grids: &grids # this is a quick way to parametrize all grids
     min: 1e-6
     max: 100
     size: 100
@@ -128,7 +138,7 @@ options:
     bNrm: *grids
     lNrm: *grids
 
-  approx: &approx
+  approx: &approx # this is a quick way to parametrize all distributions
     size: 7
     method: gauss-hermite
 
