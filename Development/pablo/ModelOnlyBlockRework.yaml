@@ -211,3 +211,11 @@ consumption_portfolio_period:
         - link(transitory_income_block, connect_income_to_consumption, consumption_choice_block)
         - link(consumption_choice_block, connect_consumption_to_portfolio, portfolio_choice_block)
         - link(portfolio_choice_block, connect_portfolio_to_future, discounting_block)
+
+
+infinite_horizon_basic_consumption_saving_model:
+    content: link(basic_consumption_saving_period, advance_time, basic_consumption_saving_period)
+
+
+infinite_horizon_consumption_portfolio_model:
+    content: link(consumption_portfolio_period, advance_time, consumption_portfolio_period)
