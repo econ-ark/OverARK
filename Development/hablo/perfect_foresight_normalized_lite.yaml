@@ -1,0 +1,28 @@
+calibration: &pf_calibration
+  - CRRA: 2.0
+  - LivPrb : 0.98
+  - DiscFac: 0.96
+  - PermGroFac: 1.01
+  - Rfree: 1.03
+  - BoroCnstArt: None
+
+agents:
+  consumer:
+    count: 100 # a model with 100 consumers
+
+dynamics:
+  p: PermGroFac * p
+  r_eff: Rfree / PermGroFac
+  b_nrm: r_eff * a_nrm
+  m_nrm: b_nrm + 1
+  c_nrm: !Control
+    inset:
+      - m_nrm
+  a_nrm: m_nrm - c_nrm
+  u: c ** (1 - CRRA) / (1 - CRRA)
+
+shocks:
+  live: !Bernoulli
+    p: 0.98
+
+
