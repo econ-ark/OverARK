@@ -24,8 +24,8 @@ transitory_income_block:
         yLvl ~ TranShkDstn
 
     functions:
-        vFunc_before_income:@ (bLvl) = E[ vFunc_after_income(mLvl) ]
-        vFunc_before_income.der:@ (bLvl) = E[ vFunc_after_income.der(mLvl) ]
+        vFunc_before_income @ (bLvl) = E[ vFunc_after_income(mLvl) ]
+        vFunc_before_income.der @ (bLvl) = E[ vFunc_after_income.der(mLvl) ]
 
 
 consumption_choice_block:
@@ -155,16 +155,16 @@ discounting_block:
     explain: intertemporal discounting by constant factor
     
     symbols:
-        parameters: Rfree
+        parameters: DiscFac
 
         functions:
             vFunc_discounted:
                 explain: next period's value function, intertemporally discounted
 
-        end: vFunc_next_period
+        end: vFunc_continuation
 
     functions:
-        vFunc_discounted @ (vFunc_next_period.args) = DiscFac * vFunc_next_period @ (vFunc_next_period.args)
+        vFunc_discounted @ (vFunc_continuation.args) = DiscFac * vFunc_next_period @ (vFunc_continuation.args)
 
 
 connect_return_to_income:
