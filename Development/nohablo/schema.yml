@@ -1,0 +1,40 @@
+---
+name: # name of the life-cycle block
+description: # description of the period
+states: # list of state variables
+  - name: # name of the state variable
+    description: # short description of state variable
+    domain: # domain of the state variable
+controls: # list of control variables
+  - name: # name of the control variable
+    description: # short description of control variable
+    domain: # domain or constraints of the control variable
+distributions: # list of exogenous distributions
+  - name: # name of the distribution
+    description: # short description of the distribution
+    distribution:# distribution type
+      # attributes as dictionary
+parameters: # list of parameters with or without default values
+equations: # equations for the period model
+  objective: # objective function to optimize
+  transitions: # transition equations for the state variables
+  definitions: # definitions of auxiliary equations/variables
+blocks: # list of subperiod blocks, recursive definition
+  - name:
+    description:
+    states:
+    controls:
+    distributions:
+    parameters:
+    equations: # ... see above
+    links: # ... see above
+    calibration:
+    options:
+links: # links that tie this period block to other period blocks
+  block: # definitions that tie this period block to another similar period block
+  lifecycle: # definitions that tie this period block to a different lifecycle block
+  terminal: # definitions that tie this period block to a terminal block
+calibration: # parameter calibration for this period block
+options: # solution options for this period block
+---
+

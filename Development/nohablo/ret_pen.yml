@@ -1,0 +1,216 @@
+model: Consumption-Pension Deposit Model
+author: Alan Lujan
+date: 12/13/2023
+affiliation:
+  - Johns Hopkins University
+  - Econ-ARK
+abstract: >
+  This model is a lifecycle model with two life stages: working life and retirement.
+  The working life stage is further divided into three blocks: expectation, deposit, and consumption.
+  During the working life stage, a consumer receives permanent and transitory income shocks and 
+  decides how much to consume and how much to deposit in a pension fund.
+  The pension fund is invested in a risky asset and the consumer receives a risky return on the pension fund.
+  The consumer also has a liquid asset which is invested in a risk-free account.
+
+---
+name: working
+description: working life before retirement
+
+states:
+  - &aNrm
+    name: aNrm
+    domain: [0.0, inf]
+    description: normalized (a)ssets after consumption
+  - &bNrm
+    name: bNrm
+    domain: [0.0, inf]
+    description: normalized (b)alance in pension fund after deposit
+  - &jNrm
+    name: jNrm
+    domain: [0.0, inf]
+    description: normalized wealth (j)ust before income
+  - &kNrm
+    name: kNrm
+    domain: [0.0, inf]
+    description: normalized pension (k)apital before income
+  - &lNrm
+    name: lNrm
+    domain: [0.0, inf]
+    description: normalized (l)iquid assets after deposit
+  - &mNrm
+    name: mNrm
+    domain: [0.0, inf]
+    description: normalized (m)arket resources
+  - &nNrm
+    name: nNrm
+    domain: [0.0, inf]
+    description: normalized (n)et retirement balance
+
+controls:
+  - &cNrm
+    name: cNrm
+    domain: [0.0, lNrm]
+    description: normalized consumption
+  - &dNrm
+    name: dNrm
+    domain: [0.0, mNrm]
+    description: normalized pension deposit
+
+distributions: # exogenous section defining the kind of shocks which drive the model
+  - &perm
+    name: perm
+    description: permanent income shock
+    distribution: !MeanOneLogNormal
+      std: std_perm
+  - &tran
+    name: tran
+    description: transitory income shock
+    distribution: !MeanOneLogNormal
+      std: std_tran
+  - &risky
+    name: risky
+    description: risky asset return
+    distribution: !LogNormal
+      mean: mean_risky
+      std: std_risky
+
+blocks:
+  - name: expectation
+    description: expectation block
+    states: [*jNrm, *kNrm]
+    distributions: [*perm, *tran, *risky]
+    parameters:
+      [CRRA, Rfree, PermGroFac, std_perm, std_tran, mean_risky, std_risky]
+    equations:
+      objective:
+        - v(jNrm, kNrm) = PermAdj^(1-CRRA) * w(mNrm, nNrm)
+      transitions:
+        - mNrm = Rfree * jNrm / PermAdj + tran
+        - nNrm = risky * kNrm / PermAdj
+      definitions:
+        - PermAdj = PermGroFac * perm
+        - Rport = (Rfree * jNrm + risky * kNrm) / (jNrm + kNrm)
+
+  - name: deposit
+    description: deposit block
+    states: [*mNrm, *nNrm]
+    controls: [*dNrm]
+    parameters: [chi]
+    equations:
+      objective:
+        - v(mNrm, nNrm) = w(lNrm, bNrm)
+      transitions:
+        - lNrm = mNrm - dNrm
+        - bNrm = nNrm + dNrm + g(dNrm)
+      definitions:
+        - g(dNrm) = chi * log(dNrm + 1)
+
+  - name: consumption
+    description: consumption block
+    states: [*lNrm, *bNrm]
+    controls: [*cNrm]
+    parameters: [CRRA, DiscFac, LivPrb]
+    equations:
+      objective:
+        - v(lNrm, bNrm) = u(cNrm) + beta * w(aNrm, bNrm)
+      transitions:
+        - aNrm = lNrm - cNrm
+      definitions:
+        - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+        - beta = DiscFac * LivPrb
+
+links:
+  block: # links between blocks, determines what w(aNrm, bNrm) means in the last block (consumption)
+    - w(aNrm, bNrm) = v(jNrm, kNrm)
+  lifecycle: # links between lifecycle blocks (stages), determines what w(aNrm, bNrm) means in the last block (consumption) given the first block of the next life stage
+    - w(aNrm, bNrm) = v(aNrm + bNrm)
+
+calibration:
+  DiscFac: 0.96
+  CRRA: 2.0
+  LivPrb: 0.99
+  Rfree: 1.03
+  PermGroFac: 1.01
+  chi: 0.1
+  std_perm: 0.1
+  std_tran: 0.1
+  mean_risky: 1.08
+  std_risky: 0.2
+
+options:
+  repeat: 20 # repeated 20 times given above calibration means the same values are used 20 times
+
+  grids: &grids # this is a quick way to parametrize all grids
+    min: 1e-6
+    max: 100
+    size: 100
+    spacing: log
+
+  states:
+    aNrm: *grids
+    bNrm: *grids
+    lNrm: *grids
+
+  approx: &approx # this is a quick way to parametrize all distributions
+    size: 7
+    method: gauss-hermite
+
+  distributions:
+    perm: *approx
+    tran: *approx
+    std_risky:
+      size: 3
+      method: gauss-hermite
+
+---
+name: retirement
+description: working life after retirement
+
+states:
+  - &mNrm
+    name: mNrm
+    domain: [0.0, inf]
+    description: normalized market resources
+
+controls:
+  - &cNrm
+    name: cNrm
+    domain: [0.0, mNrm]
+    description: normalized consumption
+
+equations:
+  objective:
+    - v(mNrm) = u(cNrm) + beta * w(mNrm')
+  transitions:
+    - aNrm = mNrm - cNrm
+    - mNrm' = Rfree * aNrm + 1
+  definitions:
+    - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+    - beta = DiscFac * LivPrb
+
+links:
+  terminal:
+    - v(mNrm) = u(cNrm)
+  block:
+    - w(mNrm') = v(mNrm)
+    - mNrm' = mNrm
+  definitions:
+    - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+
+calibration:
+  DiscFac: 0.96
+  CRRA: 2.0
+  Rfree: 1.03
+  LivPrb: 0.99
+
+options:
+  repeat: 9
+
+  grids: &grids
+    min: 1e-6
+    max: 100
+    size: 100
+    spacing: log
+
+  states:
+    mNrm: *grids
