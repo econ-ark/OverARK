@@ -190,12 +190,11 @@ equations:
 
 links:
   terminal:
-    - v(mNrm) = u(cNrm)
+    - w(mNrm) = u(mNrm)
   block:
     - w(mNrm') = v(mNrm)
-    - mNrm' = mNrm
   definitions:
-    - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+    - u(mNrm) = mNrm ** (1 - CRRA) / (1 - CRRA)
 
 calibration:
   DiscFac: 0.96
