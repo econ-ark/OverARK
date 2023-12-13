@@ -1,3 +1,17 @@
+model: Consumption-Pension Deposit Model
+author: Alan Lujan
+date: 12/13/2023
+affiliation:
+  - Johns Hopkins University
+  - Econ-ARK
+abstract: >
+  This model is a lifecycle model with two life stages: working life and retirement.
+  The working life stage is further divided into three blocks: expectation, deposit, and consumption.
+  During the working life stage, a consumer receives permanent and transitory income shocks and 
+  decides how much to consume and how much to deposit in a pension fund.
+  The pension fund is invested in a risky asset and the consumer receives a risky return on the pension fund.
+  The consumer also has a liquid asset which is invested in a risk-free account.
+
 ---
 name: working
 description: working life before retirement
@@ -101,7 +115,6 @@ blocks:
         - v(lNrm, bNrm) = u(cNrm) + beta * w(aNrm, bNrm)
       transitions:
         - aNrm = lNrm - cNrm
-        - bNrm = bNrm
       definitions:
         - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
         - beta = DiscFac * LivPrb
