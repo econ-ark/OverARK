@@ -1,10 +1,10 @@
 calibration: &pf_calibration
-  - CRRA: 2.0
-  - LivPrb : 0.98
-  - DiscFac: 0.96
-  - PermGroFac: 1.01
-  - Rfree: 1.03
-  - BoroCnstArt: None
+  CRRA: 2.0
+  LivPrb : 0.98
+  DiscFac: 0.96
+  PermGroFac: 1.01
+  Rfree: 1.03
+  BoroCnstArt: None
 
 agents:
   consumer:

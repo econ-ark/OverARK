@@ -75,6 +75,24 @@ def constructor_from_class(cls):
     return constructor
 
 
+class HabloExpression():
+
+    def __init__(self, text):
+        self.expr = parse_expr(text)
+        self.npf = self.func()
+
+        # first derivatives.
+        self.diffs = {
+            sym.__str__() : 
+            self.expr.diff(sym)
+            for sym
+            in list(self.expr.free_symbols)
+        }
+
+    def func(self):
+        return lambdify(list(self.expr.free_symbols), self.expr, "numpy")
+
+
 def math_text_to_lambda(text):
     expr = parse_expr(text)
     func = lambdify(list(expr.free_symbols), expr, "numpy")
