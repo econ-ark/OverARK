@@ -1,0 +1,124 @@
+
+       \documentclass[12pt,pdftex,letterpaper]{article}
+            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+            \usepackage{amsmath}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.35}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \newcommand{\N}{\mathbb{N}}
+			\newcommand{\R}{\mathbb{R}}
+			\newcommand{\E}{\mathbb{E}}
+			\newcommand{\der}[2]{\frac{\text{d}#1}{\text{d}#2}}
+			\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+						
+\begin{document}
+
+\begin{center}
+	\textbf{Memorandum for Meeting with Pablo Winant --- December 15, 2023}
+\end{center}
+
+\noindent \textbf{Purpose:} The Econ-ARK team has been internally discussing the development of the next iteration of \texttt{HARK}, and seeks feedback on our ideas from Pablo.
+
+\vspace{0.35cm}
+
+\noindent \textbf{Background:} The current version of HARK does not have a formal relationship among the mathematical model being represented, the operations performed to generate a ``solution'' of the model (policy functions and aggregate dynamics), and the model as acted out in simulation. Each of these components is written out separately for each model, and end users are meant to trust that there is consistency among them. Consequently, modifying an existing HARK model is not straightforward nor easy, as the user must make changes in several places in the code and understand the relationships among various modules. The solution methods in the current version of HARK are specifically tailored for each model, and the package is designed with \textit{ex ante} heterogeneity at front of mind.
+
+In contrast, the approach taken by Pablo's \texttt{dolo} and \texttt{dolark} projects enforces consistency among the model concept, solution, and simulation by using a ``single source of truth'': a clear specification of the model's dynamics (equations) and characterization of its solution, which is directly used when solving and simulating the model. User-specified models in \texttt{dolo} and \texttt{dolark} are solved automatically by several methods, which has the upside of being easy to use and the downside of potentially less efficient computation from forgoing hand-crafted code. Pablo's projects were designed primarily for macroeconomic modeling. \textit{Ex ante} heterogeneity and life-cycle models are possible to represent in these packages, but were not the primary intended use-case. Models with mixed choices or that change fundamentally over the lifecycle (``phases of life'') are not what \texttt{dolo} and \texttt{dolark} are designed for.
+
+\vspace{0.35cm}
+
+\noindent \textbf{Pitch Summary:} The Econ-ARK team wants to develop a next iteration of \texttt{HARK} that incorporates the structural consistency of \texttt{dolark}, while maintaining its focus on models with extensive \textit{ex ante} heterogeneity and life-cycle dynamics. This encompasses two main components: first, a format for precisely specifying dynamic models that can handle a wide variety of features (e.g.\ continuous and discrete choices, lifecycle problems, mortality and population dynamics, etc), like an extended \texttt{dolang}; and second, a software package that imports model specifications and allows the user to interactively construct a model piece by piece. Our intent is for the model specification language to be useful \textit{outside} of our own software package: a clear and consistent way to specify model information that could also be used by \textit{other} economists for their own purposes (e.g.\ another software package).
+
+\vspace{0.35cm}
+
+\noindent \textbf{Modeling Language:} The core element of our proposed modeling language is a ``block'' or ``stage'', representing a sequence of events for an agent (or actor). An agent's dynamic programming problem is constructed by linking these blocks together, potentially recurring on itself. Model blocks are meant to compartmentalize information, explicitly specifying the variables that are ``inbound'' to the stage as information (i.e.\ ``state variables'') and objects that can be observed from its successor when solving (e.g.\ the continuation value function). Like in \texttt{dolo}, a block declares its parameters, distributions, functions, and algebraic substitutions (definitions); unlike \texttt{dolo}, the \texttt{values} or \texttt{details} of these parameters and distributions do \textit{not} need to be provided, and can instead be left symbolic.
+
+The dynamic model content of a block/stage could be as small as one model ``step'', or it could encompass as much as what we would ordinarily describe as entire period of the model. For example, in the context of a basic consumption-saving model with transitory labor income risk and a riskless return, a block could be as small as going from beginning-of-period capital holdings $k_t$ to bank balances $b_t$ by multiplying the former by return factor $\mathsf{R}$; or it could be the next step, where labor income $y_t$ is drawn from some distribution and added to $b_t$ to yield market resources $m_t$. Alternatively, a block could be specified as having \textit{all} of the steps in one period of the consumption-saving problem: earning interest on capital, receiving stochastic labor income, choosing consumption, and retaining non-consumed market resources as assets.
+
+Suppose a user chose to specify the simple consumption-saving model using (say) four very small blocks. Under our proposed modeling language, they could further specify that these blocks are sequentially linked together. The resulting linked group of blocks would itself then represent a block that could be further linked.
+
+The Econ-ARK team has been developing draft specifications of this modeling language, formatted as YAML files. This allows model information to exist alongside parameterization choices, but not inextricably paired together. Instead, the modeling language will include a directive for assigning parameters (or distribution information, etc) from a YAML dictionary entry to a block, filling in previously unspecified information. As discussed below, our proposed software package would also allow a user to import a block into their modeling environment without parameter values, and \textit{then} to assign values.
+
+Our draft language specification includes concepts for flow control among blocks/stages, so that (e.g.) an agent's discrete control can govern the \textit{nature} of the next choice they face, or a mortality shock can determine whether they continue to the next period or simply terminate. A group of connected blocks thus acts like (and can be represented by) a directional graph among a set of nodes. A graph that loops back on itself is interpreted as an infinite horizon model in which the solution for optimal controls is recursively defined, while a graph that reaches a definite terminal node is a finite lifecycle problem. 
+
+The \texttt{dolo}, \texttt{dolark}, and \texttt{dynare} packages are all designed for solving macroeconomic models that include endogenous objects such as factor prices and (approximations of) aggregate dynamics. We intend for our new language to also be able to describe these important features, but our draft proposals have not yet progressed to  discussing how to do so.
+
+\vspace{0.35cm}
+
+\noindent \textbf{Software Package:} The software package we plan to develop (sometimes internally called ``HARK 2.0'') will act as an interpreter of the YAML model statements, interactive model development environment, and platform for applications using the models (e.g. structural estimation). Several features of the model specification language will also be included as programming directives in our software package-- the user can link blocks, create a sequence of periods, assign or change parameters, etc.
+
+The new version of \texttt{HARK} will read in YAML model files and generate representations of model objects using \texttt{sympy}'s various capabilities, which now include so-called ``pleuripotent'' functions: objects that are simultaneously both a symbolic representation of a function's mathematical form \textit{and} a numeric approximation of it (e.g.\ a representation of the optimal policy or value function) that can actually be executed. The \texttt{sympy} package now has well developed interfaces with various numeric back-ends (including \texttt{numpy} and \texttt{jax}), so that carrying symbolic representations of the model does not (necessarily) impose grave efficiency costs on computations using them.
+
+Likewise, \texttt{sympy}'s automatic differentiation and algebraic substitution capabilities have now been sufficiently well developed that an Econ-ARK team member has prototyped code for generating an algebraic representation of the first order and envelope conditions for an intertemporal optimization problem. These representations can be automatically converted into code that numerically solves the choice problem using the endogenous grid method (EGM). The new version of \texttt{HARK} will thus be able to quickly generate (a draft of) solver code from the model input, which could be used as-is or manually refined by the user. The new version of \texttt{HARK} will also maintain the ability to specify custom solver code.
+
+We have also already prototyped automatic Monte Carlo simulation based on YAML model input, ensuring consistency between intended and actual model behavior. The new version of HARK will support multiple modes of population dynamics, including explicit mortality Monte Carlo, cumulative survival probability weights, and discretizations of continuous state variables (for Markov-style approximations).
+
+\vspace{0.35cm}
+
+\noindent \textbf{Example Usage:} So as not to distract with specification details that have not yet been implemented (let alone finalized), we present a \textit{hypothetical} example of command-line interaction in the future \texttt{HARK} modeling environment, omitting the YAML files with the model and parameters; some imagination is required. Analogous concepts for most of these operations would also exist in the modeling language, so that more complex (or more completely specified) model objects could be directly imported.
+
+\texttt{> from HARK import read\_yaml, AgentType, Connector, link}
+
+\texttt{> CS\_model\_components = read\_yaml('BasicCSmodel.yml')}
+
+\texttt{> CS\_model\_components.blocks}
+
+\texttt{OUT: [basic\_consumption\_saving\_period, risk\_free\_return\_block, transitory\_income\_block, consumption\_choice\_block, discount\_block]}
+
+\texttt{> CS\_model\_components['basic\_consumption\_saving\_period'].parameters}
+
+\texttt{OUT: [Rfree, DiscFac, CRRA]}
+
+\texttt{> CS\_model\_components['basic\_consumption\_saving\_period'].distributions}
+
+\texttt{OUT: [TranShkDstn]}
+
+\texttt{> some\_CS\_parameters = read\_yaml('ExampleCSparams.yml')}
+
+\texttt{> my\_CS\_period = CS\_model\_components['basic\_consumption\_saving\_period'].copy()}
+
+\texttt{> my\_CS\_period.parameterize(some\_CS\_parameters)}
+
+\texttt{> my\_CS\_period.label('perpetual youth basic CS period')}
+
+\texttt{> time\_loop = Connector(tick=True, twist=\{'aLvl': 'kLvl', 'vFunc\_continuation': 'vFunc\_before\_return'\})}
+
+\texttt{> InfiniteCSproblem = link(my\_CS\_period, time\_loop, my\_CS\_period)}
+
+\texttt{> MyConsumerType = AgentType(model=InfiniteCSproblem, count=10000)}
+
+\texttt{> MyConsumerType.solve()}
+
+\texttt{> MyConsumerType.solution.policy}
+
+\texttt{OUT: [cLvl(mLvl) for perpetual youth basic CS period]}
+
+\end{document}
