@@ -9,7 +9,8 @@ model: &perfect_foresight
                 # not enforcing that this list be here makes the configuration more extensible, i.e
 
   blocks:
-    consumption: &cons # block definition begins with name of the block. Alias 
+    - &cons # block definition begins with name of the block. Alias 
+      name: consumption
       agent: consumer # for a model with a single agent, this might be implicit.
                     # Question: should blocks be tied to a single agent, or can multiple agents act within a block?
                     # Working with the 'count'above, this block maps over all individuals in the population.
@@ -32,8 +33,8 @@ model: &perfect_foresight
                                         # what will make it a special variable indicating it is 'reward'
                                         # is how it's referenced later.
 
-    mortality: &mort # What if mortality dynamics are handled as just another block?
-
+    - &mort # What if mortality dynamics are handled as just another block?
+      name: mortality
       agent: consumer # for a model with a single agent, this might be implicit.
                       # Question: should blocks be tied to a single agent, or can multiple agents act within a block?
                       # Working with the 'count'above, this block maps over all individuals in the population.
@@ -81,18 +82,18 @@ model: &perfect_foresight
   strategies: # or 'solution' or 'problem'. But really this is about providing information needed
               # to settle any decision rules.
               # Could provide several definitions here, which can then be referred to in the simulation configuration.
-    - demo-hard: !HardRule
+    - !HardRule
       block: *cons
       decision_rule:
         c : m / 2 # a trivial decision rule, not recommended
-    - bellman: !Bellman # this should contain all the infomation needed for a recursive, Bellman-style solver.
+    - !Bellman # this should contain all the infomation needed for a recursive, Bellman-style solver.
       block: *cons
       reward: u # this is referencing a variable that was defined in dynamics. But it could also be a function of variables.
       discount: DiscFac # Where did DiscFac come from? Note it was referenced as a parameter in the block. It could be a function.
       continuation:
         domain: a # designating the 'post states' with respect to the continuation.
       # what else is needed for specifying the Bellman problem?
-    - lifetime_reward: !LifetimeReward #similar to !Bellman, but no continuation
+    - !LifetimeReward #similar to !Bellman, but no continuation
         reward: u #
         discount: DiscFac 
 
@@ -110,8 +111,8 @@ solver: &pf_solver_egm
   model: &discretized_pf
     <<: *perfect_foresight
     blocks:
-      <<: *cons
-      mortality: &mort_disc
+      - <<: *cons
+      - &mort_disc
         <<: *mort
         shocks:
           k_init: !LogNormal
