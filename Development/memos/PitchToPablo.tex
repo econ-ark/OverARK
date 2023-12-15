@@ -36,6 +36,7 @@
             \newcommand{\N}{\mathbb{N}}
 			\newcommand{\R}{\mathbb{R}}
 			\newcommand{\E}{\mathbb{E}}
+			\newcommand{\vFunc}{\text{v}}
 			\newcommand{\der}[2]{\frac{\text{d}#1}{\text{d}#2}}
 			\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
 						
@@ -59,21 +60,40 @@ In contrast, the approach taken by Pablo's \texttt{dolo} and \texttt{dolark} pro
 
 \vspace{0.35cm}
 
-\noindent \textbf{Modeling Language:} The core element of our proposed modeling language is a ``block'' or ``stage'', representing a sequence of events for an agent (or actor). An agent's dynamic programming problem is constructed by linking these blocks together, potentially recurring on itself. Model blocks are meant to compartmentalize information, explicitly specifying the variables that are ``inbound'' to the stage as information (i.e.\ ``state variables'') and objects that can be observed from its successor when solving (e.g.\ the continuation value function). Like in \texttt{dolo}, a block declares its parameters, distributions, functions, and algebraic substitutions (definitions); unlike \texttt{dolo}, the \textit{values} or \textit{details} of these parameters and distributions do \textit{not} need to be provided, and can instead be left symbolic.
+\noindent \textbf{Basic Example Model:} To fix ideas, consider the one period problem of an agent who must choose how much to consume $c_t$ out of their market resources $m_t$ and how much to retain as assets $a_t$. They have CRRA preferences over consumption, can earn a risk free return on retained assets, and discount future utility flows by a constant factor.
 
-The dynamic model content of a block/stage could be as small as one model ``step'', or it could encompass as much as what we would ordinarily describe as entire period of the model. For example, in the context of a basic consumption-saving model with transitory labor income risk and a riskless return, a block could be as small as going from beginning-of-period capital holdings $k_t$ to bank balances $b_t$ by multiplying the former by return factor $\mathsf{R}$; or it could be the next step, where labor income $y_t$ is drawn from some distribution and added to $b_t$ to yield market resources $m_t$. Alternatively, a block could be specified as having \textit{all} of the steps in one period of the consumption-saving problem: earning interest on capital, receiving stochastic labor income, choosing consumption, and retaining non-consumed market resources as assets.
+\begin{equation*}
+\vFunc_{t}(m_t) = \max_{c_t} \frac{c_t^{1-\rho}}{1-\rho} + \beta \overline{\vFunc}_{t+1}(k_{t+1}) \text{ s.t.}
+\end{equation*}
+\begin{equation*}
+ k_{t+1} = a_t = m_t - c_t, \qquad a_t \geq 0,
+\end{equation*}
+\begin{equation*}
+b_t = \mathsf{R} k_t, \qquad m_t = b_t + y_t, \qquad y_t \sim F,
+\end{equation*}
+\begin{equation*}
+\overline{\vFunc}_t(k_t) = \E[\vFunc_t(m_t) ~|~ k_t].
+\end{equation*}
 
-Suppose a user chose to specify the simple consumption-saving model using (say) four very small blocks. Under our proposed modeling language, they could further specify that these blocks are sequentially linked together. The resulting linked group of blocks would itself then represent a block (the entire period) that could be further linked.
+In this statement, which is intentionally more belabored and elaborate than strictly necessary, $\vFunc_t(m_t)$ is the ordinary Bellman value function over the decision-time state variable (market resources), while $\overline{\vFunc}_{t}(k_t)$ is the value function at the \textit{very beginning} of period $t$, before capital returns or labor income uncertainty are resolved. To notationally separate periods, we emphasize that the same quantity represented by end-of-period-$t$ assets is \textit{also} beginning-of-period-$t+1$ capital holdings. These terms and notation will be used below.
 
-The Econ-ARK team has been developing draft specifications of this modeling language, formatted as YAML files. This allows model information to exist alongside parameterization choices, but not inextricably paired together. Instead, the modeling language will include a directive for assigning parameters (or distribution information, etc) from a YAML dictionary entry to a block, filling in previously unspecified information. As discussed below, our proposed software package would also allow a user to import a block into their modeling environment without parameter values, and \textit{then} to assign values.
+\vspace{0.35cm}
 
-Our draft language specification includes concepts for flow control among blocks/stages, so that (e.g.) an agent's discrete control can govern the \textit{nature} of the next choice they face, or a mortality shock can determine whether they continue to the next period or simply terminate. A group of connected blocks thus acts like (and can be represented by) a directional graph among a set of nodes. A graph that loops back on itself is interpreted as an infinite horizon model in which the solution for optimal controls is recursively defined, while a graph that reaches a definite terminal node is a finite lifecycle problem. 
+\noindent \textbf{Modeling Language:} The core element of our proposed modeling language is a ``stage'', representing a sequence of events for an agent (or actor). An agent's dynamic programming problem is constructed by linking these stages together, potentially recurring on itself. Model stages are meant to compartmentalize information, explicitly specifying the variables that are ``inbound'' to the stage as information (i.e.\ ``state variables'') and objects that can be observed from its successor when solving (e.g.\ the continuation value function). Like in \texttt{dolo}, a stage declares its parameters, distributions, functions, and algebraic substitutions (definitions); unlike \texttt{dolo}, the \textit{values} or \textit{details} of these parameters and distributions do \textit{not} need to be provided, and can instead be left symbolic.
+
+The dynamic model content of a stage could be as small as one model ``step'', or it could encompass as much as what we would ordinarily describe as entire period of the model. For example, in the context of a basic consumption-saving model with transitory labor income risk and a riskless return, a stage could be as small as going from beginning-of-period capital holdings $k_t$ to bank balances $b_t$ by multiplying the former by return factor $\mathsf{R}$; or it could be the next step, where labor income $y_t$ is drawn from some distribution and added to $b_t$ to yield market resources $m_t$. Alternatively, a stage could be specified as having \textit{all} of the steps in one period of the consumption-saving problem: earning interest on capital, receiving stochastic labor income, choosing consumption, and retaining non-consumed market resources as assets.
+
+Suppose a user chose to specify the simple consumption-saving model using (say) four very small stages. Under our proposed modeling language, they could further specify that these stages are sequentially linked together. The resulting linked group of stages would itself then represent a stage (the entire period) that could be further linked.
+
+The Econ-ARK team has been developing draft specifications of this modeling language, formatted as YAML files. This allows model information to exist alongside parameterization choices, but not inextricably paired together. Instead, the modeling language will include a directive for assigning parameters (or distribution information, etc) from a YAML dictionary entry to a stage, filling in previously unspecified information. As discussed below, our proposed software package would also allow a user to import a stage into their modeling environment without parameter values, and \textit{then} to assign values.
+
+Our draft language specification includes concepts for flow control among stages, so that (e.g.) an agent's discrete control can govern the \textit{nature} of the next choice they face, or a mortality shock can determine whether they continue to the next period or simply terminate. A group of connected stages thus acts like (and can be represented by) a directional graph among a set of nodes. A graph that loops back on itself is interpreted as an infinite horizon model in which the solution for optimal controls is recursively defined, while a graph that reaches a definite terminal node is a finite lifecycle problem. 
 
 The \texttt{dolo}, \texttt{dolark}, and \texttt{dynare} packages are all designed for solving macroeconomic models that include endogenous objects such as factor prices and (approximations of) aggregate dynamics. We intend for our new language to also be able to describe these important features, but our draft proposals have not yet progressed to  discussing how to do so.
 
 \vspace{0.35cm}
 
-\noindent \textbf{Software Package:} The software package we plan to develop (sometimes internally called ``HARK 2.0'') will act as an interpreter of the YAML model statements, interactive model development environment, and platform for applications using the models (e.g. structural estimation). Several features of the model specification language will also be included as programming directives in our software package-- the user can link blocks, create a sequence of periods, assign or change parameters, etc.
+\noindent \textbf{Software Package:} The software package we plan to develop (sometimes internally called ``HARK 2.0'') will act as an interpreter of the YAML model statements, interactive model development environment, and platform for applications using the models (e.g. structural estimation). Several features of the model specification language will also be included as programming directives in our software package-- the user can link stages, create a sequence of periods, assign or change parameters, etc.
 
 The new version of \texttt{HARK} will read in YAML model files and generate representations of model objects using \texttt{sympy}'s various capabilities, which now include so-called ``pleuripotent'' functions: objects that are simultaneously both a symbolic representation of a function's mathematical form \textit{and} a numeric approximation of it (e.g.\ a representation of the optimal policy or value function) that can actually be executed. The \texttt{sympy} package now has well developed interfaces with various numeric back-ends (including \texttt{numpy} and \texttt{jax}), so that carrying symbolic representations of the model does not (necessarily) impose grave efficiency costs on computations using them.
 
@@ -85,13 +105,17 @@ We have also already prototyped automatic Monte Carlo simulation based on YAML m
 
 \noindent \textbf{Example Usage:} So as not to distract with specification details that have not yet been implemented (let alone finalized), we present a \textit{hypothetical} example of command-line interaction in the future \texttt{HARK} modeling environment, omitting the YAML files with the model and parameters; some imagination is required. Analogous concepts for most of these operations would also exist in the modeling language, so that more complex (or more completely specified) model objects could be directly imported.
 
+[Hypothetical code example on next page for easier reading]
+
+\newpage
+
 \texttt{> from HARK import read\_yaml, AgentType, Connector, link}
 
 \texttt{> CS\_model\_components = read\_yaml('BasicCSmodel.yml')}
 
-\texttt{> CS\_model\_components.blocks}
+\texttt{> CS\_model\_components.stages}
 
-\texttt{OUT: [basic\_consumption\_saving\_period, risk\_free\_return\_block, transitory\_income\_block, consumption\_choice\_block, discount\_block]}
+\texttt{OUT: [basic\_consumption\_saving\_period, risk\_free\_return\_stage, transitory\_income\_stage, consumption\_choice\_stage, discount\_stage]}
 
 \texttt{> CS\_model\_components['basic\_consumption\_saving\_period'].parameters}
 
@@ -115,10 +139,14 @@ We have also already prototyped automatic Monte Carlo simulation based on YAML m
 
 \texttt{> MyConsumerType = AgentType(model=InfiniteCSproblem, count=10000)}
 
-\texttt{> MyConsumerType.solve()}
+\texttt{> MyConsumerType.solve(method='EGM')}
 
 \texttt{> MyConsumerType.solution.policy}
 
 \texttt{OUT: [cLvl(mLvl) for perpetual youth basic CS period]}
+
+\texttt{> MyConsumerType.track('aLvl','cLvl')}
+
+\texttt{> MyConsumerType.simulate(method='montecarlo')}
 
 \end{document}
