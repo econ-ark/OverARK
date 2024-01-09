@@ -1,0 +1,23 @@
+X add language about corporate sponsorship and NumFocus fiscal sponsorship
+X regime --> schema?
+X add comments about relationship to AI and assembling various tools
+X modern models in both micro and macro
+X don't mention YAML
+X explicit statement about our thorough search RIGHT BEFORE SYMPY
+X make it clear that we've looked at other fields outside economics
+X important elements, not "some elements"
+X don't say Jacobians other than in name
+X "pleuripotent" is not a term of art!
+
+ROBERT KIRKBY
+
+a project called "Bellman" bellman.dev
+
+X new generation of HA models don't use dynare because they can't
+
+X "as evidenced by the fact that..." "despite its ubiquity and familiarity"
+
+X highlight the potential for commercial application of this technology: financial advising, etc
+
+X mention central banking
+

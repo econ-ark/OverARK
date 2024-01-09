@@ -1,0 +1,86 @@
+
+       \documentclass[11pt,pdftex,letterpaper]{article}
+            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+            \usepackage{amsmath}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.1}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \newcommand{\N}{\mathbb{N}}
+			\newcommand{\R}{\mathbb{R}}
+			\newcommand{\E}{\mathbb{E}}
+			\newcommand{\der}[2]{\frac{\text{d}#1}{\text{d}#2}}
+			\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+			\setlength{\parindent}{0pt}
+			\setlength{\parskip}{1em}
+						
+\begin{document}
+	
+\begin{singlespace}
+	Prof Christopher D.\ Carroll\\
+	Wyman Park Building 590\\
+	Johns Hopkins University\\
+	Baltimore, MD 21211
+	
+	January 10, 2024
+	
+	Important Person \\
+	Prestigious Funding Organization \\
+	1000 Big Bucks Boulevard \\
+	City, STATE 00000
+\end{singlespace}
+
+\vspace{0.3cm}
+
+[Generic greeting]:
+
+In 2017, the newly founded Econ-ARK project received a generous grant from the Alfred P.\ Sloan Foundation to develop the \texttt{HARK} toolkit, a software package for solving, simulating, and estimating heterogeneous agents macroeconomics models. Using NumFocus as our fiscal sponsor, we have since received additional funding from other sources (including the Think Forward Institute and T.\ Rowe Price as a ``no strings attached'' corporate sponsor) to continue the work and expand the range of models offered in the \texttt{HARK} package, allowing us to achieve our original set of goals.
+
+Over the past seven years, the combination of our experience producing \texttt{HARK}, feedback we have received since its inception, and relatively recent developments in other software packages have led the Econ-ARK team to conclude that a new software package and modeling schema is needed to further advance the field and fully realize the vision of a common platform for dynamic structural modelers. We seek funding to create this new system, which we believe will fill a critical gap in the toolset available to structural economists, thus accelerating the development of models on the frontier of economic research, improving the verifiability of numeric output from such models, and improving communication and collaboration among researchers. In addition to academic researchers, such a platform would be of significant use both to governments (including central banks) in conducting prospective analyses of potential policy actions, and to private financial institutions who wish to make decisions or provide advice that is informed by a rigorous structural model.
+
+More specifically, Econ-ARK seeks funding to develop a language for expressing dynamic structural models (with a particular focus on heterogeneous agents macroeconomics), specifying numeric methods, and describing simulation procedures to generate model output. The language is intended to provide a common format for describing dynamic structural models that will be widely adopted for conveying model content in a human- and machine-readable way, but is independent of the software and code to actually solve and implement the model. To that end, the funding sought would also be used to develop a software package that interprets model statements in the new language, generates code for solving and simulating the model (with the chosen numeric methods), and allows the user to interactively build a structural model and examine its solution and output.
+
+Economic models are usually expressed with a combination of mathematical and natural language: most of the content can be concisely conveyed as a series of equations, inequalities, and other mathematical statements, while a few additional details are provided in plain English outside of the formal statement. This representation of the theoretical model is intended to be readily understood by a human reader. Because dynamic structural models almost surely do not have a closed form solution, they can be solved only approximately using numeric methods. While it is increasingly common for researchers to publicly archive their project code, a description of the numeric methods used is usually omitted from the final published paper; this information is (at best) relegated to an online appendix or (at worst) not documented anywhere outside of the code itself. Moreover, unlike the conventions of mathematically expressing a system of statements to compose a theoretical model, there is no straightforward and complete way to convey such numeric methods and details, even if an economist were so inclined. Even worse, there is no formal relationship between the model as expressed \textit{on paper} and the problem as solved \textit{in code}-- the academic refereeing system focuses deeply on the economics and relies on trust with respect to the numerics.
+
+Our proposed modeling language seeks to rectify these systemic issues with the workflow of economic research that uses dynamic structural models. We will provide a common platform for representing the mathematical mechanics of dynamic structural models, providing syntax to specify a wide range of model features. The representation of a model in this language will be both human-readable (via concise syntax and simple structure) and machine-readable (due to the precision and completeness of the language). If a model specification file is used to generate a numeric solution and model output, a reader or evaluator can be confident that the model presented on paper matches its execution in code. Furthermore, our language will include a format for specifying the methods used to solve the model numerically, transparently providing this information alongside the ``pure'' mathematical content of the model. In combination with our proposed software package, we seek to provide a platform for evaluating the performance of a numeric solution to a theoretical model.
+
+In our extensive field research prior to beginning work on the new platform, we conducted a thorough search of \textit{other} academic fields, investigating whether a general dynamic modeling schema has already been developed. Despite considerable effort, we found that there is no comparable or related project that could be adapted or expanded for our purposes. Rather, we found that the universe of modeling- and optimization-adjacent software is both diverse and diffuse: a collection of useful but \textit{unconnected} software tools. The lack of a common platform for representing dynamic models and calling tools for handling subsets of them is akin to the lack of cohesion among the various artificial intelligence (AI) and deep learning toolkits that have recently been developed. That is, researchers who want to use multiple AI tools must write their own code to link to each one individually, rather than there being any kind of common interface.
+
+We are very interested in beginning a dialog with you about potential funding from [organization]. Thank you very much for your time and consideration in this matter.
+
+\vspace{0.5cm}
+
+{\parskip=2pt Sincerely,
+
+\includegraphics[scale=0.7]{CDCsignature.jpg}
+
+Christopher D.\ Carroll,\\ Professor of Economics}
+
+\end{document}
