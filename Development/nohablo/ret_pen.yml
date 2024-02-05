@@ -82,8 +82,7 @@ blocks:
     parameters:
       [CRRA, Rfree, PermGroFac, std_perm, std_tran, mean_risky, std_risky]
     equations:
-      objective:
-        - v(jNrm, kNrm) = PermAdj^(1-CRRA) * w(mNrm, nNrm)
+      value: v(jNrm, kNrm) = PermAdj^(1-CRRA) * w(mNrm, nNrm)
       transitions:
         - mNrm = Rfree * jNrm / PermAdj + tran
         - nNrm = risky * kNrm / PermAdj
@@ -97,8 +96,7 @@ blocks:
     controls: [*dNrm]
     parameters: [chi]
     equations:
-      objective:
-        - v(mNrm, nNrm) = w(lNrm, bNrm)
+      value: v(mNrm, nNrm) = w(lNrm, bNrm)
       transitions:
         - lNrm = mNrm - dNrm
         - bNrm = nNrm + dNrm + g(dNrm)
@@ -111,8 +109,7 @@ blocks:
     controls: [*cNrm]
     parameters: [CRRA, DiscFac, LivPrb]
     equations:
-      objective:
-        - v(lNrm, bNrm) = u(cNrm) + beta * w(aNrm, bNrm)
+      value: v(lNrm, bNrm) = u(cNrm) + beta * w(aNrm, bNrm)
       transitions:
         - aNrm = lNrm - cNrm
       definitions:
@@ -179,8 +176,7 @@ controls:
     description: normalized consumption
 
 equations:
-  objective:
-    - v(mNrm) = u(cNrm) + beta * w(mNrm')
+  value: v(mNrm) = u(cNrm) + beta * w(mNrm')
   transitions:
     - aNrm = mNrm - cNrm
     - mNrm' = Rfree * aNrm + 1

@@ -1,0 +1,81 @@
+model: ConsIndShockModel
+author: Alan Lujan
+affiliation:
+  - Johns Hopkins University
+  - Econ-ARK
+date: 12/15/2023
+abstract: Consumption-Savings Model with Idiosyncratic Income Shocks
+
+symbols:
+  states:
+    - name: aNrm
+      domain: [0.0, inf]
+      description: normalized (a)ssets after consumption
+    - name: mNrm
+      domain: [0.0, inf]
+      description: normalized (m)arket resources
+    - name: kNrm
+      domain: [0.0, inf]
+      description: normalized (k)apital after income
+
+  controls:
+    - name: cNrm
+      domain: [0.0, mNrm]
+      description: normalized (c)onsumption
+
+  distributions:
+    - name: perm
+      description: permanent shock to income
+      distribution: !MeanOneLogNormal
+        std: sigma_psi
+    - name: tran
+      description: transitory shock to income
+      distribution: !MeanOneLogNormal
+        std: sigma_tsi
+
+  parameters: [CRRA, DiscFac, LivPrb, PermGroFac, Rfree]
+
+equations:
+  value: v(m) = u(c) + beta * v_alt(a)
+  transitions:
+    - a = m - c
+    - k = Rfree * a / PermAdj + tran
+  definitions:
+    - PermAdj = PermGroFac * perm
+    - v_alt(a) = PermAdj^(1-CRRA) * w(k)
+    - beta = DiscFac * LivPrb
+    - u(c) = c^(1-CRRA) / (1-CRRA)
+
+links: w(k) = v(a) # how to connect this problem to a subsequent problem
+
+options:
+  repeat: .inf
+  tolerance: 0.001
+
+  calibration:
+    - CRRA: 2.0
+    - DiscFac: 0.96
+    - LivPrb: 0.99
+    - PermGroFac: 1.01
+    - Rfree: 1.03
+    - sigma_psi: 0.1
+    - sigma_tsi: 0.1
+
+  grids: &grids # this is a quick way to parametrize all grids
+    min: 1e-6
+    max: 100
+    size: 100
+    spacing: log
+
+  states:
+    aNrm: *grids
+    mNrm: *grids
+    kNrm: *grids
+
+  approx: &approx # this is a quick way to parametrize all distributions
+    size: 7
+    method: gauss-hermite
+
+  distributions:
+    perm: *approx
+    tran: *approx
