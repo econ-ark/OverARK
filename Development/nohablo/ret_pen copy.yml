@@ -1,0 +1,185 @@
+model: Consumption-Pension Deposit Model
+author: Alan Lujan
+date: 12/13/2023
+affiliation:
+  - Johns Hopkins University
+  - Econ-ARK
+
+---
+name: working
+
+states:
+  - &aNrm
+    name: aNrm
+    domain: [0.0, inf]
+  - &bNrm
+    name: bNrm
+    domain: [0.0, inf]
+  - &jNrm
+    name: jNrm
+    domain: [0.0, inf]
+  - &kNrm
+    name: kNrm
+    domain: [0.0, inf]
+  - &lNrm
+    name: lNrm
+    domain: [0.0, inf]
+  - &mNrm
+    name: mNrm
+    domain: [0.0, inf]
+  - &nNrm
+    name: nNrm
+    domain: [0.0, inf]
+
+controls:
+  - &cNrm
+    name: cNrm
+    domain: [0.0, lNrm]
+  - &dNrm
+    name: dNrm
+    domain: [0.0, mNrm]
+
+distributions: # exogenous section defining the kind of shocks which drive the model
+  - &perm
+    name: perm
+    distribution: !MeanOneLogNormal
+      std: std_perm
+  - &tran
+    name: tran
+    distribution: !MeanOneLogNormal
+      std: std_tran
+  - &risky
+    name: risky
+    distribution: !LogNormal
+      mean: mean_risky
+      std: std_risky
+
+blocks:
+  - name: expectation
+    states: [*jNrm, *kNrm]
+    distributions: [*perm, *tran, *risky]
+    parameters:
+      [CRRA, Rfree, PermGroFac, std_perm, std_tran, mean_risky, std_risky]
+    equations:
+      value: v(jNrm, kNrm) = PermAdj^(1-CRRA) * w(mNrm, nNrm)
+      transitions:
+        - mNrm = Rfree * jNrm / PermAdj + tran
+        - nNrm = risky * kNrm / PermAdj
+      definitions:
+        - PermAdj = PermGroFac * perm
+        - Rport = (Rfree * jNrm + risky * kNrm) / (jNrm + kNrm)
+
+  - name: deposit
+    states: [*mNrm, *nNrm]
+    controls: [*dNrm]
+    parameters: [chi]
+    equations:
+      value: v(mNrm, nNrm) = w(lNrm, bNrm)
+      transitions:
+        - lNrm = mNrm - dNrm
+        - bNrm = nNrm + dNrm + g(dNrm)
+      definitions:
+        - g(dNrm) = chi * log(dNrm + 1)
+
+  - name: consumption
+    states: [*lNrm, *bNrm]
+    controls: [*cNrm]
+    parameters: [CRRA, DiscFac, LivPrb]
+    equations:
+      value: v(lNrm, bNrm) = u(cNrm) + beta * w(aNrm, bNrm)
+      transitions:
+        - aNrm = lNrm - cNrm
+      definitions:
+        - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+        - beta = DiscFac * LivPrb
+
+links:
+  block: # links between blocks, determines what w(aNrm, bNrm) means in the last block (consumption)
+    - w(aNrm, bNrm) = v(jNrm, kNrm)
+  lifecycle: # links between lifecycle blocks (stages), determines what w(aNrm, bNrm) means in the last block (consumption) given the first block of the next life stage
+    - w(aNrm, bNrm) = v(aNrm + bNrm)
+
+calibration:
+  DiscFac: 0.96
+  CRRA: 2.0
+  LivPrb: 0.99
+  Rfree: 1.03
+  PermGroFac: 1.01
+  chi: 0.1
+  std_perm: 0.1
+  std_tran: 0.1
+  mean_risky: 1.08
+  std_risky: 0.2
+
+options:
+  repeat: 20 # repeated 20 times given above calibration means the same values are used 20 times
+
+  grids: &grids # this is a quick way to parametrize all grids
+    min: 1e-6
+    max: 100
+    size: 100
+    spacing: log
+
+  states:
+    aNrm: *grids
+    bNrm: *grids
+    lNrm: *grids
+
+  approx: &approx # this is a quick way to parametrize all distributions
+    size: 7
+    method: gauss-hermite
+
+  distributions:
+    perm: *approx
+    tran: *approx
+    std_risky:
+      size: 3
+      method: gauss-hermite
+
+---
+name: retirement
+
+states:
+  - &mNrm
+    name: mNrm
+    domain: [0.0, inf]
+
+controls:
+  - &cNrm
+    name: cNrm
+    domain: [0.0, mNrm]
+
+equations:
+  value: v(mNrm) = u(cNrm) + beta * w(mNrm')
+  transitions:
+    - aNrm = mNrm - cNrm
+    - mNrm' = Rfree * aNrm + 1
+  definitions:
+    - u(cNrm) = cNrm ** (1 - CRRA) / (1 - CRRA)
+    - beta = DiscFac * LivPrb
+
+links:
+  terminal:
+    - w(mNrm) = u(mNrm)
+  block:
+    - w(mNrm') = v(mNrm)
+  definitions:
+    - u(mNrm) = mNrm ** (1 - CRRA) / (1 - CRRA)
+
+calibration:
+  DiscFac: 0.96
+  CRRA: 2.0
+  Rfree: 1.03
+  LivPrb: 0.99
+
+options:
+  repeat: 9
+
+  grids: &grids
+    min: 1e-6
+    max: 100
+    size: 100
+    spacing: log
+
+  states:
+    mNrm: *grids
