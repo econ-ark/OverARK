@@ -8,6 +8,11 @@ model: &perfect_foresight
         - m : R++ # could use this space to document out all the variables of an agent, but this is also implicit in the block definitions.
                 # not enforcing that this list be here makes the configuration more extensible, i.e
 
+  calibration:
+    PermGroFac: # indexing into (e.g) age varying categories goes here, not in the block.
+      - coord: age # this could be any state variable.
+      - data: 1.1, 1.2, 1.2, 1.3, 1.1
+
   blocks:
     - &cons # block definition begins with name of the block. Alias 
       name: consumption
@@ -27,7 +32,7 @@ model: &perfect_foresight
           constraints:
             - c < m - BoroCnst
         y: p
-        p: PermGroFac[age] * p
+        p: PermGroFac * p
         a: m - c
         u: c ** (1 - CRRA) / (1 - CRRA) # it doesn't hurt to include this as a variable in the dynamics.
                                         # what will make it a special variable indicating it is 'reward'
