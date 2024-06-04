@@ -2,7 +2,7 @@
 
 Here's a proposal, which we might think of as an augmented version of Alan's Blocks.
 
-Here, I'm using `Interval` to distinguish my ideas from Alan's `Block`
+Here, I'm using `Interval` to distinguish my object from Alan's `Block`
 
 To address up front an objection that I anticipate: 'If we are solving an infinite-horizon problem it is silly to build machinery for keeping track of multiple distinct intervals, because every period will be the same.'
 
@@ -96,4 +96,17 @@ This seems rather painful, but remember that at present we are only really talki
 ```
 >>> interval.get(what='cFunc',month='Aug')
 ```
+
+
+# Mathematical Representation
+
+One of our goals is to have a complete mapping between the mathematical representation and the computational instantiation of our models, I want to work hard (and jointly) on the math notation and the computational objects.  In my experience, writing up the math often brings to mind important points that otherwise might be missed.
+
+For that purpose, here are direct links to relevant sections of my https://llorracc.github.io/SolvingMicroDSOPs notes:
+
+[notation](https://llorracc.github.io/SolvingMicroDSOPs-Public/#moves)
+
+[multiple-control-variables](https://llorracc.github.io/SolvingMicroDSOPs-Public/#multiple-control-variables)
+
+[the-usual-theory](https://llorracc.github.io/SolvingMicroDSOPs-Public/#the-usual-theory)
 
