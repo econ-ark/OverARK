@@ -1,5 +1,34 @@
 # What Should Be The Strucutre of an Interval...
 
+## 20240606-update
+
+Lets call our object for an interval "mything"
+
+Desiderata:
+- structure _independent_ of the code that creates it ...
+  - ... and can therefore be modified by any "external" code
+  - even, say, Julia or (god forbid) FORTRAN
+  - ideally, all of the structure should be easily transportable
+	- into Julia, say
+	- so as to make structures easily representable by standards
+	- e.g., sympy compatible math
+- It has multiple components which can be constructed individually
+  - Pure math: mything.math?
+	- contains ranges, domains, other abstract things
+	- example: trans shock \theta is a mean-one truncated lognormal
+		- define the names of the parameters thetaMin, thetaMax, thetaVar, etc
+  - Abstract description of approximations
+    - mything.approximators
+	  - example: we're approximating the \theta distn with n equiprobable gridpoints
+	  - want to allow multiple choices here, so people can compare
+  - Concrete numerical specs of approximators
+    - e.g., in the equiprobable, n=7
+  - Stuff we build - like approx solutions, value funcs, etc
+    - mything.bilt (all my names are negotiable)
+
+
+Below is the earlier text:
+
 Here's a proposal, which we might think of as an augmented version of Alan's Blocks.
 
 Here, I'm using `Interval` to distinguish my object from Alan's `Block`
