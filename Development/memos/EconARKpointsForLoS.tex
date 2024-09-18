@@ -1,0 +1,195 @@
+
+       \documentclass[12pt,pdftex,letterpaper]{article}
+            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+			\usepackage[colorlinks=false, urlbordercolor={0 1 0}]{hyperref}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.22}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \newcommand{\N}{\mathbb{N}}
+			\newcommand{\R}{\mathbb{R}}
+			\newcommand{\E}{\mathbb{E}}
+			\newcommand{\der}[2]{\frac{\text{d}#1}{\text{d}#2}}
+			\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+						
+\begin{document}
+\begin{center}
+	\textbf{Memo on Econ-ARK's Plans for a Modeling Language --- September 17, 2024}
+\end{center}
+
+
+\noindent \textbf{Overview:} \href{https://econ-ark.org/}{Econ-ARK} is developing a \href{https://ampl.com/wp-content/uploads/amlopt.pdf}{\textit{modeling language}} for representing dynamic structural models. That is, a format for precisely and unambiguously specifying the mechanics of methods of a model in a human- and machine-readable format-- not the traditional algebraic representation. Its primary goal is to promote transparency, reproducibility, and robustness in heterogeneous agents macroeconomic and structural microeconomic research. The language is meant to be a common denominator \textit{across} software packages, rather than bound to one in particular. As a tangible first step, we are expanding our HARK package to be compatible with such a modeling language (without tying down the language itself). We are seeking funding from the \href{https://sloan.org/}{Alfred P.\ Sloan Foundation}, who require that grant applications be accompanied by letters of support in some circumstances; we are humbly asking for your assistance in this matter. This memo will catch you up on what we've accomplished so far and what we're trying to do next.
+
+\vspace{0.5cm}
+
+\noindent \textbf{Where You Come In:} Successfully developing the language will require iterative feedback from economists with experience and knowledge about the theoretical foundations, scope, and breadth of dynamic modeling. We would like you to participate in this process as part of an advisory board or working group, periodically providing constructive criticism on draft versions of the language specification. For example, feedback on whether it can suitably capture \textit{your} models and encompass the range of features \textit{you} include (or have considered) in your own projects.
+
+As per Sloan's grant proposal guidelines, our project proposal must include an appendix with a letter from each key figure supporting the project. The letter must articulate the nature of their relationship to the project and their understanding of the role they expect to play in the project's success. (Suggestions for what your letter could say are listed below.)
+
+
+
+\vspace{0.5cm}
+
+\noindent \textbf{What Econ-ARK Has Done:} Our progress since founding in 2016 is summarized here. Our primary software output is \href{https://github.com/econ-ark/HARK}{HARK}, a Python package for solving and simulating heterogeneous agents (HA) macroeconomic models.
+
+\begin{itemize} 
+	\item HARK is a framework for HA models that makes it easy to add or change \textit{ex ante} heterogeneity among agents, in both infinite horizon and lifecycle frameworks.
+	
+	\item You can install it from the command line: \texttt{pip install econ-ark}.
+	
+	\item Includes \href{https://docs.econ-ark.org/Documentation/reference/index.html}{representations of variations} on the canonical consumption-saving problem, including: shocks to marginal utility of consumption, a second consumption good with random marginal utility, aggregate productivity shocks, an exogenous discrete state, endogenous labor supply, portfolio allocation, non-normalizable income processes, etc.
+	
+	\item Also has a \href{https://docs.econ-ark.org/Documentation/reference/tools/core.html#HARK.core.Market}{framework} for representing (and solving for) equilibrium conditions in HA models, using a generalized Krusell-Smith-style algorithm.
+	
+	\item Can be used outside of typical HA macro, e.g.\ \href{http://www.mnwhite.org/DynInsSelPaper.pdf}{endogenous pricing of health insurance}.
+	
+	\item Has \href{https://github.com/econ-ark/HARK/blob/master/HARK/dcegm.py}{tools} for discrete-continuous choice models, with an \href{https://econ-ark.org/materials/endogenousretirement/}{example implementation}.
+	
+	\item Recently begun \href{https://docs.econ-ark.org/examples/ConsNewKeynesianModel/SSJ_example.html}{integrating} with the \href{https://github.com/shade-econ/sequence-jacobian}{SSJ toolkit} to enable analysis of (e.g.)\ HANK models in HARK.
+	
+	\item Models are \href{https://docs.econ-ark.org/Documentation/reference/ConsumptionSaving/ConsRiskyAssetModel.html#HARK.ConsumptionSaving.ConsRiskyAssetModel.IndShockRiskyAssetConsumerType}{\textit{documented} to explain} what they mean/do, but these equations (etc) are not \textit{encoded} in HARK itself. \underline{That's what we're going to change with this grant.}
+\end{itemize}
+
+\noindent Econ-ARK has also designed the \href{https://github.com/econ-ark/REMARK}{REMARK} structure for archiving research projects and reproductions of other papers that use HARK. This grant application is not about REMARKs.
+
+\begin{itemize}
+	\item See REMARK notebooks \href{https://econ-ark.org/materials/}{here} by searching for the REMARK tag.
+	
+	\item REMARKs are governed with a \href{https://github.com/econ-ark/REMARK/blob/master/STANDARD.md}{simple structural standard} and now have a \href{https://github.com/econ-ark/REMARK?tab=readme-ov-file#action}{uniform command line interface} for setup and testing.
+	
+	\item You might be interested in the reproductions of Jeppe Druedahl's \href{https://econ-ark.org/materials/durableconsumertype/}{guide} to non-convex consumption-saving models, the \href{https://econ-ark.org/materials/deep-learning-euler-method-krusell-smith/}{deep learning method} from Maliar, Maliar, \& Winant (2018), and Alan Lujan's $\text{EGM}^n$ \href{https://econ-ark.org/materials/sequentialegm/}{method notebook}.
+\end{itemize}
+
+\vspace{0.5cm}
+
+\noindent \textbf{What We're Trying to Address:} In broad terms, our organizational focus is on reproducibility and robustness in economic research. We don't think there's a ``replicability crisis'' \textit{per se}, but we want to address the following significant issues related to replicability:
+
+\begin{itemize}
+	\item Exact model specifications, and especially computational and numeric details of the solution and/or estimation method, are not well communicated in published research.
+	
+	\item Potential dependency of economic conclusions on ``hidden choices'' is often obscure.
+	
+	\item Implementation details might be in online appendix, or only in the code itself.
+	
+	\item Impact of these details on conclusions is not really probed in the refereeing process.
+	
+	\item Reproducing or replicating someone else's project often ``starts from zero''.
+	
+	\item There is no easy way to directly compare two implementations of the same project or idea, and even verifying that two things are tackling ``the same'' problem is difficult.
+\end{itemize}
+
+\vspace{0.5cm}
+
+\noindent \textbf{What We're Going to Do:} Econ-ARK's proposed solution is a new language for unambiguously specifying both the precise mathematical structure of a model \textit{and} the methods and approximations used to numerically solve the model and generate output from it.
+
+\begin{itemize}
+	\item A lot like \href{https://www.dynare.org/}{DYNARE} for a (much) wider class of models: feature set broad enough to be used for HA macro, dynamic structural microeconomics, industrial organization, etc.
+	
+	\item DYNARE model file contents are strictly informed by DYNARE software capabilities: can only specify model features that the package is capable of handling.
+	
+	\item New modeling language \textit{not} tied to any particular software. Meant to be common/shared way to precisely represent models \textit{across} solution methods or software packages.
+	
+	\item Large feature set informed by \underline{iterative feedback from working group of experts} in the field. If language can't describe a feature they want, then it needs to expand.
+	
+	\item Will \underline{organize a workshop to present preliminary version} of the language to a working group and solicit feedback. Funding for this event is requested in the grant.
+	
+	\item HARK doesn't formally represent models internally. Will develop model specification for HARK to inform language design. \underline{This will not restrict the modeling language}.
+	
+	\item Language will have explicit separation of representation of the ``pure mathematical'' or ``Platonic ideal'' model vs computational implementation: discretization choices, quadrature methods, functional representation, simulation procedures, etc.
+	
+	\item This grant application is to make HARK ``language compatible'' as groundwork, establish working group, begin developing modeling language, and hold workshop.
+	
+	\item Completing development of the language exceeds scope of this grant. For context, we have future plans for what can be done with the modeling language.
+	
+	\item Future goal: Provide mappings to parse model specification in new language into formats used by various software packages (conditional on limitations on capabilities): DYNARE, Robert Kirkby's \href{https://www.vfitoolkit.com/}{VFI toolkit}, future version of HARK, etc.
+	
+	\item Future goal: Make it feasible to compare solutions produced by different methods or packages, with a proper ``single source of truth'' to ensure apples-to-apples comparison.
+	
+	\item Future goal: Connect model output to \href{https://cadcad.org/}{\texttt{cadCAD} package} from \href{https://block.science/}{BlockScience} to automate robustness testing for conclusions with respect to numeric/computational choices.
+	
+\end{itemize}
+
+\vspace{0.25cm}
+
+\noindent \textbf{What Your Letter Should Say:}\label{WhatToSay} Letters of support should be 1-2 pages long, and primarily address the writer's \underline{understanding of the role they expect to play} in the project's success.
+
+\begin{itemize}
+	\item Your role would be to provide occasional feedback on developmental versions of the modeling language, as a member of an advisory board or working group.
+	
+	\item Iterative process: We try to make a specification that includes a sufficiently wide range of features to encompass the set of models of interest; you tell us what we missed.
+	
+	\item You will also be invited to an in-person workshop for live discussion and interaction about the language. Participants will be leaders in dynamic modeling and methods, and/or those who have developed toolkits for working with subsets of such models.
+	
+	\item Economists are independent and opinionated. The kinds of economists who will be invited to the workshop have strong opinions about the topic and want to be included.
+	
+	\item Dynamic models are diverse, many with some ``unusual'' feature. It would not be reasonable for a small team to ``get everything'' \textit{without significant outside feedback}.
+	
+	\item The overall mission is a good idea and should be conducted, as it will significantly aid the field. Potential points in support of this are provided on the next page.
+	
+	\item Your letter can be addressed to Daniel L. Goroff, Economics Program Director,	Alfred P.\ Sloan Foundation.
+	
+\end{itemize}
+
+\newpage
+
+\vspace{0.25cm}
+
+\noindent \textbf{What We Want to Accomplish:} There are several potential upsides that we hope to achieve with this project, some of which we've explicitly discussed with you in the past. Some of these might be useful points to raise in a letter of support.
+\begin{itemize}
+	\item Economics is not immune to ``failure to replicate,'' and the reasons can be subtle. See EXAMPLE from the AER, in which economic conclusions were reversed by different computational methods.
+	
+	\item Frontier models have features that make solution not ``well behaved'' (e.g.\ discrete-continuous choice). Functional discontinuities cause problems with policy optimization, cascades into difficulties with estimation. ``Most interesting'' papers might be most susceptible to hard-to-detect numeric complications.
+	
+	\item Even without any new software, a common format for representing choices about numeric integrals, discretized state spaces, etc is a big step in the right direction.
+	
+	\item Greatly reduces burden on reader / evaluator to understand what was \textit{actually done}-- the \textit{first prerequisite} to independently reproducing the work.
+	
+	\item Some top journals use a \href{https://www.econometricsociety.org/publications/es-data-editor-website}{``data editor''} who tries to reproduce claimed results in accepted papers, using the authors' own files.
+	
+	\item Focuses on reproducing results that are to be published; does \textit{not} address robustness.
+	
+	\item ``Robustness checks'' in refereeing focus on model specification, not numeric details.
+	
+	\item Systematic representation / documentation of computational methods (etc) could make it feasible to \textit{actually} investigate whether and how ``hidden choices'' affect conclusions.
+	
+	\item There is no ``standard software'' in structural modeling, nor standard \textit{anything}. Other than well known numeric packages (\texttt{numpy}, \texttt{lapack}), researchers hand code everything.
+	
+	\item Some economists publish toolkits for solving particular types of models or handling a specific method, but there's no commonality among them or way to link them.
+	
+	\item Some software tools are ``inherited'' from adviser or coauthors; need to be an ``insider''.
+	
+	\item Some overlap among toolkit capabilities. How does their output compare when given \textit{exact same} problem? Currently no easy way to specify ``exact same''.
+	
+	\item Includes AI / deep learning platforms not specifically designed for economics.
+	
+	\item Common platform for interacting with multiple toolkits would accelerate research.
+\end{itemize}
+
+\end{document}
