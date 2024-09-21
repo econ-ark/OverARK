@@ -17,7 +17,7 @@ and simulating heterogeneous agent (HA) models, either for HA-Macro or for struc
 
 -   Extensive [documentation](https://docs.econ-ark.org)
 
--   [A Gentle Introduction](https://econ-ark.org/materials/gentle-intro-to-hark/).
+-   [Overview and Examples](https://docs.econ-ark.org/Documentation/overview/index.html)
 
 -   Includes [variations](https://docs.econ-ark.org/Documentation/reference/index.html)
     on the canonical consumption-saving problem, including: 
