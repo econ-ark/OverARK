@@ -1,0 +1,98 @@
+
+       \documentclass[11pt,pdftex,letterpaper]{article}
+            \usepackage{setspace}
+            \usepackage[dvips,]{graphicx} %draft option suppresses graphics dvi display
+%            \usepackage{lscape}
+%            \usepackage{latexsym}
+%            \usepackage{endnotes}
+%            \usepackage{epsfig}
+            \usepackage{amsmath}
+%           \singlespace
+            \setlength{\textwidth}{6.5in}
+            \setlength{\textheight}{9in}
+            \addtolength{\topmargin}{-\topmargin} 
+            \setlength{\oddsidemargin}{0in}
+            \setlength{\evensidemargin}{0in}
+            \addtolength{\headsep}{-\headsep}
+            \addtolength{\topskip}{-\topskip}
+            \addtolength{\headheight}{-\headheight}
+            \setcounter{secnumdepth}{2}
+%            \renewcommand{\thesection}{\arabic{section}}
+            % \renewcommand{\footnote}{\endnote}
+            \newtheorem{proposition}{Proposition}
+            \newtheorem{definition}{Definition}
+            \newtheorem{lemma}{lemma}
+            \newtheorem{corollary}{Corollary}
+            \newtheorem{assumption}{Assumption}
+            \newcommand{\Prob}{\operatorname{Prob}}
+            \clubpenalty 5000
+            \widowpenalty 5000
+            \renewcommand{\baselinestretch}{1.20}
+            \usepackage{amsmath}
+            \usepackage{amsthm}
+            \usepackage{amsfonts}
+            \usepackage{amssymb}
+            \usepackage{bbm}
+            \usepackage{natbib}
+            \newcommand{\N}{\mathbb{N}}
+			\newcommand{\R}{\mathbb{R}}
+			\newcommand{\E}{\mathbb{E}}
+			\newcommand{\der}[2]{\frac{\text{d}#1}{\text{d}#2}}
+			\newcommand{\pd}[2]{\frac{\partial#1}{\partial#2}}
+						
+\begin{document}
+\thispagestyle{empty}
+
+\begin{center}
+	\textbf{Proposal for AI-Informed Discovery and Inquiry Seed Grant 2025 \\ September 30, 2024}
+\end{center}
+
+\vspace{1.5cm}
+
+\noindent \textbf{Project Title:} A Deeper Dive on Deep-Learning Solution Methods for Heterogeneous Agents Macroeconomic Models
+
+\vspace{1.5cm}
+
+\noindent \textbf{Principal Investigator:} Professor Christopher D. Carroll (\texttt{ccarroll@jhu.edu}), Department of Economics, Krieger School of Arts and Sciences
+
+\newpage
+\setcounter{page}{1}
+
+\begin{center}
+	\textbf{Proposal Narrative}
+\end{center}
+
+\noindent \textbf{Background:} A central assumption in economic modeling is that agents (decision-makers) have \textit{rational expectations} about future events. That is, while they do not know future states with certainty, they have accurate \textit{beliefs} about the \textit{distribution of events} that could occur, conditional on all information available to them in the present. Combined with the equally fundamental assumption of \textit{rational behavior}-- that each agent chooses their action (e.g.\ how much to spend on consumption vs save for the future) to optimize their preferences in some way-- the rational expectations assumption provides discipline to economic models. These assumptions ``pin down'' model predictions by restricting behavior and beliefs to be ``correct'' within the context of the model: there are infinite ways to be wrong and only one way to be right. While there is plenty of research on models of non-rational expectations (including by me in \cite{cAndCwithStickyE}) and evidence showing that human behavior \textit{cannot} be rationalized in some experimental contexts, these principles remain the standard core of modern economic theory.
+
+For decades, macroeconomists typically worked with \textit{representative agent} models, in which all households are agglomerated into a single \textit{representative consumer}, who is employed by the unitary \textit{representative firm}, etc. Such a reductive approach was justified by a widely held belief that heterogeneity among households or firms was of second or third order importance for aggregate, macroeconomic outcomes, as well as the practical consideration that modeling rational expectations about future outcomes is only feasible if present and future states can be represented by a reasonable number of variables. Over the past 25 years or so, the importance of the heterogeneity of household states (e.g.\ the distribution of wealth) has been taken more seriously by macroeconomists, nicely summarized in \cite{FiveGuys}.
+
+Properly solving a heterogeneous agents macroeconomic model is a daunting challenge, conceptually and computationally. Future prices depend on the future behavior of many agents (in the limit, a continuum), each of whose action depends on both their particular idiosyncratic circumstances and the entire distribution of states of their peers-- everyone has to know where everyone else is and predict what they're going to do. The canonical approach to this problem was presented in \cite{KrusellSmith}, who reduced households' information set to a small set of statistical moments about the full distribution (ultimately, just the mean) and showed that the value of further information was of little consequence to individual welfare nor aggregate dynamics. Subsequent work demonstrated that this result was not universal and critically depended on the simplifying assumptions, and explored other methods for reducing the complexity of the state space while preserving solution accuracy (see e.g. \cite{Reiter2010}). Variations on the original model used by Krusell \& Smith have remained the benchmark for exploring and discussing these topics, including in a special issue of the Journal of Economic Dynamics and Control (\cite{JEDCspecial}).
+
+More recently, researchers have begun to explore how deep-learning and neural-network approaches can be used to solve heterogeneous agents macroeconomic models. In particular, \cite{MALIAR202176} present a unified framework for solving such models using deep learning methods. Prior work usually divides the Krusell-Smith model into two complementary parts: 1) how agents should \textit{behave} conditional on the current state and their understanding of aggregate dynamics; and 2) how the macroeconomic state \textit{dynamically evolves} given how individual agents behave. This paper instead solves both parts together, casting the \textit{entire model} into a form usable by a neural network (or other functional approximator), and showing that three related approaches to representing the model all yield comparable results. As usual, the benchmark model is based on \cite{KrusellSmith}, and the authors briefly explore how their deep-learning solution systematically deviates from that produced by the traditional moment-based method. Based on their analysis, the authors conclude that incorporating more neurons in the second hidden layer (representing aggregate dynamics) is effective in improving solution accuracy, but including more moments of the state distribution is not. They explain that this is because the moments are \textit{exogenously chosen} pieces of information that \textit{aren't valuable} to agents when choosing their action, whereas the neural-network approach \textit{endogenously} finds the aggregate information that is relevant to individuals.
+
+\vspace{0.25cm}
+
+\noindent \textbf{Area of Investigation:} I believe that this last point is ripe for a deeper exploration, and that I am well equipped to conduct this work with an AI-Informed Seed Grant. \cite{MALIAR202176} report model solution times ranging from 9 minutes to 12 hours (on an ordinary laptop) depending on how many agents are tracked in the population for their method (1 to 1000). From personal experience with their variation of the Krusell-Smith model, I know that the traditional (moment-based) method takes only a few minutes to solve on ordinary hardware. The (approximately one page) discussion of this topic in the published paper does not provide any insight into the \textit{economic magnitude} of the improvement in solution accuracy that is attained by spending orders of magnitude more computational time, nor provides such a comparison time for readers who are less familiar. As a basic threshold matter, I would conduct a more thorough exploration and report of the trade-off between computation time and solution accuracy, using standard measures for the field. As you might guess, economists are interested in \textit{what's gained} when additional resources are spent.
+
+Beyond that straightforward analysis, the AI-Informed Seed Grant would be used to investigate a hybrid approach that lies between the traditional moment-based method from \cite{KrusellSmith} and the unified approach in \cite{MALIAR202176} that passes the entire model as a problem for the neural network to solve. Returning to the framing in the Background portion of this narrative, solving for \textit{rational behavior} conditional on beliefs is a well understood problem in computational economics; there are many ``secrets'' and ``tricks'' that have developed over time for efficiently solving such problems. Under the ``unified'' approach in \cite{MALIAR202176}, decades of specialized know-how about solving consumption-saving problems is thrown out and the neural network is left to its own devices, unguided by economic theory about its task.  In contrast, representing \textit{rational expectations} when the state space is high dimensional is \textit{not nearly} as well understood or developed. Given a long history of the states and actions of millions of agents, an economist would have some \textit{informed guesses} about how best to summarize the dynamic properties of this information, but they wouldn't necessarily be very good. To wit, Per Krusell and Tony Smith thought that the second and third moments of the wealth distribution would be relevant, but they were wrong. Parsing large datasets for the important ``hidden'' features is \textit{exactly} what deep learning methods excel at.
+
+\vspace{0.25cm}
+
+\noindent \textbf{Project Goals, Methods, and Impact:} The main task for the AI-Informed Seed Grant would be to investigate and report on a hybrid method in which the \textit{microeconomic} problem (rational behavior conditional on beliefs about aggregate dynamics) is solved by human-coded methods, drawing on decades of specialized knowledge, while the \textit{macroeconomic} component (characterizing aggregate dynamics from individual behavior) would be conducted by neural network. I believe this approach would best apply machine learning to the aspect of heterogeneous agents macroeconomics for which it is best suited, maximizing its efficiency in the solution method.
+
+Moreover, the field would greatly benefit from a proper \textit{interpretation} of the neural network's solution. That is, if the second moment of the wealth distribution \textit{isn't} relevant, but the neural network found information of the same dimensionality that \textit{is} relevant, then \textit{what is that information}? \cite{MALIAR202176} are silent on this critical question, the answer to which would inform further development of both economic theory and computational methods. That is, if we have a better idea of \textit{what to look for} based on the neural network's solution to one model, these insights can be applied to other models \textit{whether or not} a neural network is used to solve them.
+
+I am particularly well suited for this task for several reasons. First, and with appropriate humility, I am one of the leading theorists on consumption-saving models (\cite{CarrollBuffer}), as well as the developer of foundational methods for their efficient solution (\cite{CarrollEGM}). Second, I am the PI for Econ-ARK (\texttt{http://www.econ-ark.org}), a project that produces open source software for solving heterogeneous agents models (the \texttt{HARK} Python package). Econ-ARK's developers are currently working on a modeling language that will allow for much greater cross-compatibility of solution methods, including machine-learning toolkits. Being able to demonstrate a proof-of-concept by connecting \texttt{HARK}'s hand-coded microeconomic solvers to a neural network that can efficiently characterize the relevant macroeconomic dynamics would make Econ-ARK \textit{significantly} more attractive to other funders. This project is currently funded by a generous corporate sponsorship from T.\ Rowe Price, and has previously received a large grant from the Sloan Foundation, to whom we are applying for a second grant.
+
+\nocite{HARK}
+
+Third, I have recently been installed as the president of the Society for Computational Economics (SCE), taking over from Lilia Maliar (of \cite{MALIAR202176}). Tying these last two together into the fourth and final reason: this summer Econ-ARK employed the Maliars' son Marc, who actually helped them write the TensorFlow code for that paper. Developing the hybrid method that I have outlined here is eminently feasible for me because I already am the PI for an expertly developed microeconomic solution codebase \textit{and} direct access to the authors and programmers for the seminal paper that I seek to improve upon. The tools are there, and the AI-Informed Seed Grant would provide the means for me to put them together.
+
+\newpage
+
+\begin{singlespace}
+    \bibliographystyle{mnwteststyle}
+	\bibliography{AIseed}
+\end{singlespace}
+
+\end{document}
