@@ -1,5 +1,7 @@
 # SDG Detailed Project Scope and Plan
 
+Central to the deployment of deep learning methods to solve heterogeneous agent models is standardized infrastructure to enable robust comparisons across deep learning and traditional methods.
+
 The purpose of this project is to develop infrastructure that will let us systematically compare alternative computational solutions to "the same" model
 - The marquee comparison will be for the Krusell-Smith model:
     - Specifically, the comparison will be between 
